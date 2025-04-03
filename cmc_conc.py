@@ -5,19 +5,19 @@ surfactant_library = {
     "surfactant_1": {
         "MW": "tba",
         "CAS": "tba",
-        "CMC": "tba",
+        "CMC": 0.1,
         "SMILES": "tba"
     },
     "surfactant_2": {
         "MW": "tba",
         "CAS": "tba",
-        "CMC": "tba",
+        "CMC": 10,
         "SMILES": "tba"
     },
     "surfactant_3": {
         "MW": "tba",
         "CAS": "tba",
-        "CMC": "tba",
+        "CMC": 20,
         "SMILES": "tba"
     },
     "surfactant_4": {
@@ -99,22 +99,22 @@ def CMC_estimate (s1,  s2=None, s3=None, s1_ratio=None, s2_ratio=None):
 
 def generate_cmc_concentrations(cmc):
     """
-    Generate 12 concentration points from cmc/10 to cmc*10.
+    Generate 12 concentration points from cmc/3 to cmc*3.
     """
-    # Log-spaced: from cmc/10 to cmc/1.5 (4 points)
-    below = np.logspace(np.log10(cmc / 10), np.log10(cmc / 1.5), 4)
+    # Log-spaced: from cmc/10 to cmc/1.5 (3 points)
+    below = np.logspace(np.log10(cmc / 3), np.log10(cmc / 1.5), 3)
 
-    # Linearly spaced: ±25% around CMC (4 points)
-    around = np.linspace(cmc * 0.75, cmc * 1.25, 4)
+    # Linearly spaced: ±25% around CMC (6 points)
+    around = np.linspace(cmc * 0.75, cmc * 1.25, 6)
 
-    # Log-spaced: from cmc*1.5 to cmc*10 (4 points)
-    above = np.logspace(np.log10(cmc * 1.5), np.log10(cmc * 10), 4)
+    # Log-spaced: from cmc*1.5 to cmc*10 (3 points)
+    above = np.logspace(np.log10(cmc * 1.5), np.log10(cmc * 3), 3)
 
     return np.concatenate([below, around, above]).tolist()
 
     
 def surfactant_mix(cmc_concs, s1, s2=None, s3=None, s1_ratio=None, s2_ratio=None,
-                   s1_stock=50, s2_stock=50, s3_stock=50, mix_stock=50):
+                   s1_stock=50, s2_stock=50, s3_stock=50):
     """
     Calculate the volumes of up to three surfactants and water needed to prepare a surfactant mix.
 
