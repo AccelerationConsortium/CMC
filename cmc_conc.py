@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
-# surfactant_library
 
+# surfactant_library
 surfactant_library = {
     "surfactant_1": {
         "MW": "tba",
@@ -77,25 +77,14 @@ surfactant_library = {
     },
 }
 
-def CMC_estimate (s1,  s2=None, s3=None, s1_ratio=None, s2_ratio=None):
+def CMC_estimate(surfactants, ratios):
+    cmc_total = 0.0
+    for surfactant, ratio in zip(surfactants, ratios):
+        if surfactant is not None:
+            cmc = surfactant_library[surfactant]['CMC']
+            cmc_total += cmc * ratio
+    return cmc_total
 
-    if s2 == None and s3 == None:
-        # Only one surfactant
-        cmc1 = surfactant_library[s1]['CMC']
-        return cmc1
-    
-    elif s2 != None and s3 == None:
-        # Two surfactants
-        cmc1 = surfactant_library[s1]['CMC']
-        cmc2 = surfactant_library[s2]['CMC']
-        return cmc1 * s1_ratio + cmc2 * (1-s1_ratio)
-    
-    elif s2 != None and s3 != None:
-        # Three surfactants
-        cmc1 = surfactant_library[s1]['CMC']
-        cmc2 = surfactant_library[s2]['CMC']
-        cmc3 = surfactant_library[s3]['CMC']
-        return cmc1 * s1_ratio + cmc2 * s2_ratio + cmc3 * (1-s1_ratio-s2_ratio)
 
 
 def generate_cmc_concentrations(cmc):
@@ -183,6 +172,7 @@ def surfactant_mix(cmc_concs, s1, s2=None, s3=None, s1_ratio=None, s2_ratio=None
     return mix_stock_conc, result
 
 
+
 def calculate_volumes(concentration_list, stock_concentration):
     total_volume = 300
     probe_volume = 3
@@ -191,23 +181,32 @@ def calculate_volumes(concentration_list, stock_concentration):
     surfactant_volumes = []
     water_volumes = []
     probe_volumes = []
+    total_volumes = []
 
     for conc in concentration_list:
         surfactant_volume = (conc * (total_volume - probe_volume)) / stock_concentration
         water_volume = total_volume - probe_volume - surfactant_volume
 
+        # Round for consistency
+        surfactant_volume = round(surfactant_volume, 2)
+        water_volume = round(water_volume, 2)
+
+        # Collect values
         concentrations.append(conc)
-        surfactant_volumes.append(round(surfactant_volume, 2))
-        water_volumes.append(round(water_volume, 2))
+        surfactant_volumes.append(surfactant_volume)
+        water_volumes.append(water_volume)
         probe_volumes.append(probe_volume)
+        total_volumes.append(round(surfactant_volume + water_volume + probe_volume, 2))
 
     df = pd.DataFrame({
         "concentration": concentrations,
         "surfactant volume": surfactant_volumes,
         "water volume": water_volumes,
-        "probe volume": probe_volumes
+        "probe volume": probe_volumes,
+        "total volume": total_volumes
     })
 
     return df
+
 
 
