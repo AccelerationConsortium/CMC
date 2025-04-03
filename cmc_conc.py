@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 # surfactant_library
 
 surfactant_library = {
@@ -136,7 +137,7 @@ def surfactant_mix(cmc_concs, s1, s2=None, s3=None, s1_ratio=None, s2_ratio=None
 
     # Calculate CoC (Critical overall concentration)
     max_cmc_conc = max(cmc_concs)
-    coc = max_cmc_conc / ((total_cmc_volume - probe_volume) / total_cmc_volume)
+    mix_stock_conc = max_cmc_conc / ((total_cmc_volume - probe_volume) / total_cmc_volume)
 
     # Handle ratios
     if s2 is None:
@@ -156,7 +157,7 @@ def surfactant_mix(cmc_concs, s1, s2=None, s3=None, s1_ratio=None, s2_ratio=None
             raise ValueError("Invalid ratios: sum of s1_ratio and s2_ratio exceeds 1.")
 
     # Total moles needed
-    total_mmol = coc * final_volume / 1000  # mmol
+    total_mmol = mix_stock_conc * final_volume / 1000  # mmol
 
     # Calculate volumes
     result = {}
@@ -179,5 +180,34 @@ def surfactant_mix(cmc_concs, s1, s2=None, s3=None, s1_ratio=None, s2_ratio=None
     water = final_volume - v1 - v2 - v3
     result['Water'] = water
 
-    return result
+    return mix_stock_conc, result
+
+
+def calculate_volumes(concentration_list, stock_concentration):
+    total_volume = 300
+    probe_volume = 3
+
+    concentrations = []
+    surfactant_volumes = []
+    water_volumes = []
+    probe_volumes = []
+
+    for conc in concentration_list:
+        surfactant_volume = (conc * (total_volume - probe_volume)) / stock_concentration
+        water_volume = total_volume - probe_volume - surfactant_volume
+
+        concentrations.append(conc)
+        surfactant_volumes.append(round(surfactant_volume, 2))
+        water_volumes.append(round(water_volume, 2))
+        probe_volumes.append(probe_volume)
+
+    df = pd.DataFrame({
+        "concentration": concentrations,
+        "surfactant volume": surfactant_volumes,
+        "water volume": water_volumes,
+        "probe volume": probe_volumes
+    })
+
+    return df
+
 
