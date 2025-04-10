@@ -1,5 +1,8 @@
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
+
 
 # surfactant_library
 surfactant_library = {
@@ -78,6 +81,12 @@ surfactant_library = {
 }
 
 def CMC_estimate(surfactants, ratios):
+
+        # Sanity checks
+    if len(surfactants) != 3 or len(ratios) != 3:
+        raise ValueError("Both 'list_of_surfactants' and 'list_of_ratios' must have exactly 3 elements.")
+    if sum(ratios) > 1:
+        raise ValueError("Sum of surfactant ratios must be <= 1.")
     cmc_total = 0.0
     for surfactant, ratio in zip(surfactants, ratios):
         if surfactant is not None:
@@ -103,20 +112,19 @@ def generate_cmc_concentrations(cmc):
     return np.concatenate([below, around, above]).tolist()
 
     
-def surfactant_mix(cmc_concs, s1, s2=None, s3=None, s1_ratio=None, s2_ratio=None,
-                   s1_stock=50, s2_stock=50, s3_stock=50):
+def surfactant_mix(cmc_concs, list_of_surfactants, list_of_ratios,
+                   stock_concs=[50, 50, 50]):
     """
     Calculate the volumes of up to three surfactants and water needed to prepare a surfactant mix.
 
     Parameters:
     - cmc_concs: list of CMC concentrations (in mM)
-    - s1, s2, s3: surfactant names or labels (only s1 required)
-    - s1_ratio, s2_ratio: component ratios (s3 ratio = 1 - s1 - s2)
-    - s1_stock, s2_stock, s3_stock: stock concentrations in mM
-    - mix_stock: desired stock concentration of the mix (default: 50 mM)
+    - list_of_surfactants: list of 3 surfactant names or None
+    - list_of_ratios: list of 3 ratios (must sum <= 1)
+    - stock_concs: list of 3 stock concentrations in mM
 
     Returns:
-    - Dict of surfactant volumes and water volume (µL)
+    - Tuple of (mix_stock_conc, dict with 3 surfactants (named or placeholders) and water, values in µL)
     """
 
     # Constants
@@ -124,52 +132,40 @@ def surfactant_mix(cmc_concs, s1, s2=None, s3=None, s1_ratio=None, s2_ratio=None
     total_cmc_volume = 300  # µL
     final_volume = 1000  # µL
 
-    # Calculate CoC (Critical overall concentration)
+    # Validations
+    if len(list_of_surfactants) != 3 or len(list_of_ratios) != 3 or len(stock_concs) != 3:
+        raise ValueError("Inputs must all have 3 elements.")
+    if sum(list_of_ratios) > 1:
+        raise ValueError("Sum of surfactant ratios must be <= 1.")
+
+    # Calculate adjusted mix stock concentration
     max_cmc_conc = max(cmc_concs)
     mix_stock_conc = max_cmc_conc / ((total_cmc_volume - probe_volume) / total_cmc_volume)
-
-    # Handle ratios
-    if s2 is None:
-        s1_ratio = 1.0
-        s2_ratio = 0.0
-        s3_ratio = 0.0
-    elif s3 is None:
-        if s1_ratio is None:
-            raise ValueError("s1_ratio must be specified for two-component system.")
-        s2_ratio = 1 - s1_ratio
-        s3_ratio = 0.0
-    else:
-        if s1_ratio is None or s2_ratio is None:
-            raise ValueError("s1_ratio and s2_ratio must be specified for three-component system.")
-        s3_ratio = 1 - s1_ratio - s2_ratio
-        if not (0 <= s3_ratio <= 1):
-            raise ValueError("Invalid ratios: sum of s1_ratio and s2_ratio exceeds 1.")
 
     # Total moles needed
     total_mmol = mix_stock_conc * final_volume / 1000  # mmol
 
-    # Calculate volumes
     result = {}
+    total_surfactant_volume = 0
 
-    v1 = (total_mmol * s1_ratio) / (s1_stock / 1000)
-    result[s1] = v1
+    for i in range(3):
+        surf = list_of_surfactants[i]
+        ratio = list_of_ratios[i]
+        stock = stock_concs[i]
 
-    v2 = 0
-    v3 = 0
+        # Assign placeholder if name is None
+        surf_label = surf if surf is not None else f"None_{i+1}"
 
-    if s2:
-        v2 = (total_mmol * s2_ratio) / (s2_stock / 1000)
-        result[s2] = v2
+        # Calculate volume or assign 0
+        volume = (total_mmol * ratio) / (stock / 1000) if ratio > 0 else 0
 
-    if s3:
-        v3 = (total_mmol * s3_ratio) / (s3_stock / 1000)
-        result[s3] = v3
+        result[surf_label] = volume
+        total_surfactant_volume += volume
 
-    # Water is just the remainder
-    water = final_volume - v1 - v2 - v3
-    result['Water'] = water
+    result['Water'] = final_volume - total_surfactant_volume
 
     return mix_stock_conc, result
+
 
 
 
@@ -210,3 +206,45 @@ def calculate_volumes(concentration_list, stock_concentration):
 
 
 
+# Define the Boltzmann sigmoid function
+def boltzmann(x, A1, A2, x0, dx):
+    return A2 + (A1 - A2) / (1 + np.exp((x - x0) / dx))
+
+def CMC_plot(i1_i3_ratio, conc):
+    # Initial guess for parameters [A1, A2, x0, dx]
+    p0 = [max(i1_i3_ratio), min(i1_i3_ratio), (max(conc) - min(conc))/2, (max(conc) - min(conc)) / 5]
+
+    # Fit the data to the Boltzmann sigmoid
+    popt, pcov = curve_fit(boltzmann, conc, i1_i3_ratio, p0, maxfev=5000)
+    A1, A2, x0, dx = popt
+
+    # Compute the second CMC (xCMC2) using the derived formula
+    xCMC2 = x0 + dx * np.log((A1 - A2) / (0.5 * (A1 - A2)))
+
+    # Compute R-squared value for goodness of fit
+    residuals = i1_i3_ratio - boltzmann(conc, *popt)
+    ss_res = np.sum(residuals**2)
+    ss_tot = np.sum((i1_i3_ratio - np.mean(i1_i3_ratio))**2)
+    r_squared = 1 - (ss_res / ss_tot)
+
+    # Plot the data and fitted curve
+    x_fit = np.linspace(min(conc), max(conc), 100)
+    y_fit = boltzmann(x_fit, *popt)
+
+    plt.figure(figsize=(8, 6))
+    plt.scatter(conc, i1_i3_ratio, label='Experimental Data', color='blue')
+    plt.plot(x_fit, y_fit, label='Boltzmann Fit', color='red')
+    plt.axvline(x0, linestyle='--', color='green', label=f'(xCMC)1 = {x0:.2f} mM')
+    plt.axvline(xCMC2, linestyle='--', color='purple', label=f'(xCMC)2 = {xCMC2:.2f} mM')
+    plt.xlabel('SDS Concentration (mM)')
+    plt.ylabel('I₁/I₃ Ratio')
+    plt.title('CMC Determination using Boltzmann Fit')
+    plt.legend()
+    plt.grid()
+    plt.show()
+
+    # Output the computed CMC values and R-squared
+    print(f'Estimated (xCMC)1: {x0:.2f} mM')
+    print(f'Estimated (xCMC)2: {xCMC2:.2f} mM')
+    print(f'Average (xCMC)1/2: {(x0 + xCMC2)/2:.2f} mM')
+    print(f'Fit Accuracy (R²): {r_squared:.4f}')
