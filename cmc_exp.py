@@ -5,73 +5,73 @@ import pandas as pd
 
 # surfactant_library
 surfactant_library = {
-    "surfactant_1": {
+    "s1": {
         "MW": "tba",
         "CAS": "tba",
         "CMC": 0.1,
         "SMILES": "tba"
     },
-    "surfactant_2": {
+    "s2": {
         "MW": "tba",
         "CAS": "tba",
         "CMC": 10,
         "SMILES": "tba"
     },
-    "surfactant_3": {
+    "s3": {
         "MW": "tba",
         "CAS": "tba",
         "CMC": 20,
         "SMILES": "tba"
     },
-    "surfactant_4": {
+    "s4": {
         "MW": "tba",
         "CAS": "tba",
         "CMC": "tba",
         "SMILES": "tba"
     },
-    "surfactant_5": {
+    "s5": {
         "MW": "tba",
         "CAS": "tba",
         "CMC": "tba",
         "SMILES": "tba"
     },
-    "surfactant_6": {
+    "s6": {
         "MW": "tba",
         "CAS": "tba",
         "CMC": "tba",
         "SMILES": "tba"
     },
-    "surfactant_7": {
+    "s7": {
         "MW": "tba",
         "CAS": "tba",
         "CMC": "tba",
         "SMILES": "tba"
     },
-    "surfactant_8": {
+    "s8": {
         "MW": "tba",
         "CAS": "tba",
         "CMC": "tba",
         "SMILES": "tba"
     },
-    "surfactant_9": {
+    "s9": {
         "MW": "tba",
         "CAS": "tba",
         "CMC": "tba",
         "SMILES": "tba"
     },
-    "surfactant_10": {
+    "s10": {
         "MW": "tba",
         "CAS": "tba",
         "CMC": "tba",
         "SMILES": "tba"
     },
-    "surfactant_11": {
+    "s11": {
         "MW": "tba",
         "CAS": "tba",
         "CMC": "tba",
         "SMILES": "tba"
     },
-    "surfactant_12": {
+    "s12": {
         "MW": "tba",
         "CAS": "tba",
         "CMC": "tba",
@@ -129,7 +129,7 @@ def surfactant_mix(cmc_concs, list_of_surfactants, list_of_ratios,
     # Constants
     probe_volume = 3  # µL
     total_cmc_volume = 300  # µL
-    final_volume = 1000  # µL
+    final_volume = 1800  # µL
 
     # Validations
     if len(list_of_surfactants) != 3 or len(list_of_ratios) != 3 or len(stock_concs) != 3:
@@ -161,7 +161,7 @@ def surfactant_mix(cmc_concs, list_of_surfactants, list_of_ratios,
         result[surf_label] = volume
         total_surfactant_volume += volume
 
-    result['Water'] = final_volume - total_surfactant_volume
+    result['water'] = final_volume - total_surfactant_volume
 
     return mix_stock_conc, result
 
@@ -213,16 +213,21 @@ def generate_exp(list_of_surfactants, list_of_ratios, stock_concs=[50, 50, 50]):
     exp = {
         "list_of_surfactants": list_of_surfactants,
         "list_of_ratios": list_of_ratios,
-        "stock_concs": stock_concs,
-        "mix_stock_conc": mix_stock_conc,
-        "mix_stock_vol": mix_stock_vol,
+        "original_surfactant_stock_concs": stock_concs,
+        "surfactant_mix_stock_conc": mix_stock_conc,
+        "surfactant_mix_stock_vols": mix_stock_vol,
         "estimated_CMC": estimated_CMC,
-#        "cmc_concentrations": cmc_concentrations,
-        "mix_stock_conc": mix_stock_conc,
-        "mix_stock_vol": mix_stock_vol,
         "df": df,
     }
 
-    return exp
+    small_exp = {
+
+        "surfactant_mix_stock_vols": mix_stock_vol,
+        "solvent_mix_vol": df["concentration"].tolist(),
+        "water_vol": df["water volume"].tolist(),
+        "pyrene_vol": df["probe volume"].tolist(),
+    }
+
+    return exp, small_exp
 
 

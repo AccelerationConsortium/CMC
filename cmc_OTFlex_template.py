@@ -12,84 +12,199 @@ requirements = {"robotType": "Flex", "apiLevel": "2.19"}
 def run(protocol: protocol_api.ProtocolContext):
 
 
+    # robot setup
     # load 1000 uL tip rack in deck slot D2
     tip1000 = protocol.load_labware(load_name="opentrons_flex_96_filtertiprack_1000ul", location="B1")
     tip50 = protocol.load_labware(load_name="opentrons_flex_96_filtertiprack_50ul", location="B2")
     
-    # attach pipette to right mount
-    pipette = protocol.load_instrument(instrument_name="flex_1channel_1000", mount="left", tip_racks=[tip1000, tip50])
+    # attach pipette 
+    pipette_low = protocol.load_instrument(instrument_name="flex_1channel_50", mount="right", tip_racks=[tip50])
+    pipette_high = protocol.load_instrument(instrument_name="flex_1channel_1000", mount="left", tip_racks=[tip1000])
 
-
-    # load well plate in deck slot B1
+    # load well plate in deck slot D1
     plate = protocol.load_labware(load_name="corning_96_wellplate_360ul_flat", location="D1")
 
-    # load deep well plate in deck slot B3
-    deepplate = protocol.load_labware(load_name="corning_96_wellplate_360ul_flat", location="D2")
+    # load deep well plate in deck slot D2
+    deepplate = protocol.load_labware('allenlabresevoir_96_wellplate_2200ul', location = 'D2')
 
-    # load vial tray in deck slot A3
-    stocks = protocol.load_labware(load_name="allenlab_8_wellplate_20000ul", location="C1")
-    water_loc = stocks['A1']
-    surfactant_loc = stocks['A2']
 
-    probe_methanol_loc = stocks['B1']
-    probe_DMSO_loc = stocks['B2']
-    probe_ethanol_loc = stocks['B3']
+    # load first stock plate with 8 surfactants in deck slot C1
+    surfactant_stock_1 = protocol.load_labware(load_name="allenlab_8_wellplate_20000ul", location="C1")
+    s1 = surfactant_stock_1['A1']
+    s2 = surfactant_stock_1['A2']
+    s3 = surfactant_stock_1['A3']
+    s4 = surfactant_stock_1['A4']
+    s5 = surfactant_stock_1['B1']
+    s6 = surfactant_stock_1['B2']
+    s7 = surfactant_stock_1['B3']
+    s8 = surfactant_stock_1['B4']
 
+
+    # load second stock plate with 4 surfactants + pyrene in deck slot C2
+    surfactant_pyrene_stock_2 = protocol.load_labware(load_name="allenlab_8_wellplate_20000ul", location="C2")
+    s9 = surfactant_pyrene_stock_2['A1']
+    s10 = surfactant_pyrene_stock_2['A2']
+    s11 = surfactant_pyrene_stock_2['A3']
+    s12 = surfactant_pyrene_stock_2['A4']
+    pyrene = surfactant_pyrene_stock_2['B1']
+
+    # load water in deck slot C3
+    water_res = protocol.load_labware('nest_1_reservoir_290ml','C3')
+    water = water_res['A1']
+
+    # trash bin
     trash = protocol.load_trash_bin(location="A3")
 
+    sources = {
+        's1': s1,
+        's2': s2,
+        's3': s3,
+        's4': s4,
+        's5': s5,
+        's6': s6,
+        's7': s7,
+        's8': s8,
+        's9': s9,
+        's10': s10,
+        's11': s11,
+        's12': s12,
+        'water': water,
+        'pyrene': pyrene,
+    }
+    
 
-    probe_vol = [10] * 12
-    surfactant_vol = [0, 10, 20, 50, 100, 150, 200, 250, 300, 350, 400, 500]
-    water_vol = [990, 980, 970, 940, 890, 840, 790, 740, 690, 640, 590, 490]
+    # to be rewritten according to the exp design
+################################################################################################################################################
 
-    # Set up pipette aspirating and dispensing flow rate
-    pipette.flow_rate.aspirate = 300
-    pipette.flow_rate.dispense = 300
-    pipette.flow_rate.aspirate = 300
-    pipette.flow_rate.dispense = 300
-    pipette.flow_rate.blow_out = 500
-    pipette.flow_rate.blow_out = 500
+    exp_list = {
+        'exp1': {
+            'surfactant_mix_vol': {
+                's1': 6.060606060606061,
+                'None_2': 0,
+                'None_3': 0,
+                'water': 993.939393939394
+            },
+            'solvent_mix_vol': [0, 3, 6, 15, 30, 45, 60, 75, 90, 105, 120, 150],
+            'water_vol': [297, 294, 291, 282, 267, 252, 237, 222, 207, 192, 177, 147],
+            'pyrene_vol': [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+        },
+        'exp2': {
+            'surfactant_mix_vol': {
+                's1': 6.060606060606061,
+                'None_2': 0,
+                'None_3': 0,
+                'water': 993.939393939394
+            },
+            'solvent_mix_vol': [0, 3, 6, 15, 30, 45, 60, 75, 90, 105, 120, 150],
+            'water_vol': [297, 294, 291, 282, 267, 252, 237, 222, 207, 192, 177, 147],
+            'pyrene_vol': [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+        }}
 
-    def CMC (probe, row):
+    solvent_mix_loc = 'A1'
+    row = 'A'
 
-        pipette.well_bottom_clearance.dispense = 30
-        pipette.well_bottom_clearance.aspirate = 3
+################################################################################################################################################
 
-        if probe == "methanol":
-            probe_loc = probe_methanol_loc
+
+    def CMC_surfactant_mix(exp, solvent_mix_loc):
+        for key in exp['surfactant_mix_stock_vols'].keys():
+            vol = exp['surfactant_mix_stock_vols'][key]
+            
+            if 0 < vol < 50:
+                pipette = pipette_low
+            else:
+                pipette = pipette_high
+
+            if vol > 0:
+                pipette.pick_up_tip()
+                pipette.transfer(
+                    vol,
+                    sources[key],
+                    deepplate[solvent_mix_loc],
+                    new_tip='never',
+                    air_gap=vol / 20,
+                    blow_out=True
+                )
+                pipette.drop_tip()
+
+
+
+    # make surfactant dilution
+
+
         
-        elif probe == "DMSO":
-            probe_loc = probe_DMSO_loc
+    def process_a_row(row, vols, source, destination, touch_tip):
 
-        elif probe == "ethanol":
-            probe_loc = probe_ethanol_loc
+        def pipette_selection (vol):
+            if vol <= 50:
+                return pipette_low
+            else:
+                return pipette_high
+    
+        last_pipette = None
+        for i, vol in enumerate(vols):
+            new_pipette = pipette_selection(vol)
 
-        pipette.pick_up_tip(tip1000)
-        for col in range(1, 13):
-            pipette.transfer(water_vol[col-1], water_loc, deepplate[row + str(col)], new_tip='never', blow_out=True)
-        pipette.drop_tip()
+            if new_pipette != last_pipette:
+                if last_pipette and last_pipette.has_tip:
+                    last_pipette.drop_tip()
+                new_pipette.pick_up_tip()
 
-        pipette.pick_up_tip(tip1000)
-        for col in range(1, 13):
-            pipette.transfer(surfactant_vol[col-1], surfactant_loc, deepplate[row + str(col)], new_tip='never', blow_out=True)
-        pipette.drop_tip()
-
-        pipette.pick_up_tip(tip50)
-        for col in range(1, 13):
-            pipette.transfer(probe_vol[col-1], probe_loc, deepplate[row + str(col)], new_tip='never', blow_out=True)
-        pipette.drop_tip()
-
-
-        pipette.well_bottom_clearance.dispense = 3
-        pipette.well_bottom_clearance.aspirate = 3
+            if vol>0:
+                new_pipette.flow_rate.aspirate = vol
+                new_pipette.flow_rate.dispense = vol
+                new_pipette.flow_rate.blow_out = vol * 5
 
 
-        pipette.pick_up_tip(tip1000)
-        for col in range(1, 13):
-            pipette.mix(3, 200, deepplate[row + str(col)])
-            pipette.transfer(200, deepplate[row + str(col)], plate[row + str(col)], new_tip='never', blow_out=True)
-        pipette.drop_tip()
+            transfer_repeat = int((vol // 200) + 1)
 
-    CMC("DMSO", 'A')
-    CMC("ethanol", 'B')
-    CMC("methanol", 'C')
+            for _ in range(transfer_repeat):
+                new_pipette.transfer(vol/transfer_repeat, source, destination[row + str(i+1)], new_tip='never', air_gap=vol/10)
+
+            if touch_tip:
+                new_pipette.touch_tip(destination[row + str(i+1)])
+
+            last_pipette = new_pipette
+
+        if last_pipette and last_pipette.has_tip:
+            last_pipette.drop_tip()
+
+
+    def CMC (exp, row, solvent_mix_loc):
+        process_a_row(row, exp['water_vol'], water, plate, touch_tip=0)
+        process_a_row(row, exp['pyrene_vol'], pyrene, plate, touch_tip=1)
+        process_a_row(row, exp['solvent_mix_vol'], deepplate[solvent_mix_loc], plate, touch_tip=1)
+
+
+    def next_well(well):
+        import re
+        match = re.match(r"([A-H])(\d+)", well)
+        if not match:
+            raise ValueError(f"Invalid well format: {well}")
+        
+        row, col = match.groups()
+        col = int(col)
+
+        if col < 12:
+            col += 1
+        else:
+            col = 1
+            if row == 'H':
+                raise ValueError("Plate overflow: no more wells after H12")
+            row = chr(ord(row) + 1)
+        return f"{row}{col}"
+
+
+
+
+
+    # Run the exps
+    for exp_key in exp_list.keys():
+        exp = exp_list[exp_key]
+
+        CMC_surfactant_mix(exp, solvent_mix_loc)
+        CMC(exp, row, solvent_mix_loc)
+
+        solvent_mix_loc = next_well(solvent_mix_loc)
+        row = chr(ord(row) + 1)
+
