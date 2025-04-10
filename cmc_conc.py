@@ -80,15 +80,15 @@ surfactant_library = {
     },
 }
 
-def CMC_estimate(surfactants, ratios):
+def CMC_estimate(list_of_surfactants, list_of_ratios):
 
         # Sanity checks
-    if len(surfactants) != 3 or len(ratios) != 3:
+    if len(list_of_surfactants) != 3 or len(list_of_ratios) != 3:
         raise ValueError("Both 'list_of_surfactants' and 'list_of_ratios' must have exactly 3 elements.")
-    if sum(ratios) > 1:
+    if sum(list_of_ratios) > 1:
         raise ValueError("Sum of surfactant ratios must be <= 1.")
     cmc_total = 0.0
-    for surfactant, ratio in zip(surfactants, ratios):
+    for surfactant, ratio in zip(list_of_surfactants, list_of_ratios):
         if surfactant is not None:
             cmc = surfactant_library[surfactant]['CMC']
             cmc_total += cmc * ratio
@@ -203,6 +203,29 @@ def calculate_volumes(concentration_list, stock_concentration):
     })
 
     return df
+
+def generate_exp(list_of_surfactants, list_of_ratios, stock_concs=[50, 50, 50]):
+
+    estimated_CMC = CMC_estimate(list_of_surfactants, list_of_ratios)
+    cmc_concentrations = generate_cmc_concentrations(estimated_CMC)
+    mix_stock_conc, mix_stock_vol = surfactant_mix(cmc_concentrations, list_of_surfactants, list_of_ratios, stock_concs=stock_concs)
+    df = calculate_volumes(cmc_concentrations, mix_stock_conc)
+
+    exp = {
+        "list_of_surfactants": list_of_surfactants,
+        "list_of_ratios": list_of_ratios,
+        "stock_concs": stock_concs,
+        "mix_stock_conc": mix_stock_conc,
+        "mix_stock_vol": mix_stock_vol,
+        "estimated_CMC": estimated_CMC,
+        "cmc_concentrations": cmc_concentrations,
+        "mix_stock_conc": mix_stock_conc,
+        "mix_stock_vol": mix_stock_vol,
+        "df": df,
+    }
+
+    return exp
+
 
 
 
