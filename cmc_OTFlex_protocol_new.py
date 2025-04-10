@@ -107,10 +107,6 @@ def run(protocol: protocol_api.ProtocolContext):
 
 
 
-    # make surfactant dilution
-
-
-        
     def process_a_row(row, vols, source, destination, touch_tip):
 
         def pipette_selection (vol):
@@ -173,6 +169,13 @@ def run(protocol: protocol_api.ProtocolContext):
         return f"{row}{col}"
 
 
+    ###  no pipette change just for test  ###
+    def CMC_mix_row(row):
+        pipette_high.pick_up_tip(tip1000)
+        for col in range(1, 13):
+            pipette_high.mix(3, 200, deepplate[row + str(col)])
+            pipette_high.transfer(200, deepplate[row + str(col)], plate[row + str(col)], new_tip='never', blow_out=True)
+        pipette_high.drop_tip()
 
     # Run the exps
     for exp_key in exp_list.keys():
@@ -180,6 +183,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
         CMC_surfactant_mix(exp, solvent_mix_loc)
         CMC(exp, row, solvent_mix_loc)
+        CMC_mix_row(row)
 
         solvent_mix_loc = next_well(solvent_mix_loc)
         row = chr(ord(row) + 1)
