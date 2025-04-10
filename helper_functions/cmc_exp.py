@@ -81,11 +81,6 @@ surfactant_library = {
 
 def CMC_estimate(list_of_surfactants, list_of_ratios):
 
-        # Sanity checks
-    if len(list_of_surfactants) != 3 or len(list_of_ratios) != 3:
-        raise ValueError("Both 'list_of_surfactants' and 'list_of_ratios' must have exactly 3 elements.")
-    if sum(list_of_ratios) > 1:
-        raise ValueError("Sum of surfactant ratios must be <= 1.")
     cmc_total = 0.0
     for surfactant, ratio in zip(list_of_surfactants, list_of_ratios):
         if surfactant is not None:
@@ -131,11 +126,6 @@ def surfactant_mix(cmc_concs, list_of_surfactants, list_of_ratios,
     total_cmc_volume = 300  # µL
     final_volume = 1800  # µL
 
-    # Validations
-    if len(list_of_surfactants) != 3 or len(list_of_ratios) != 3 or len(stock_concs) != 3:
-        raise ValueError("Inputs must all have 3 elements.")
-    if sum(list_of_ratios) > 1:
-        raise ValueError("Sum of surfactant ratios must be <= 1.")
 
     # Calculate adjusted mix stock concentration
     max_cmc_conc = max(cmc_concs)
@@ -204,6 +194,12 @@ def calculate_volumes(concentration_list, stock_concentration):
     return df
 
 def generate_exp(list_of_surfactants, list_of_ratios, stock_concs=[50, 50, 50]):
+
+        # Validations
+    if len(list_of_surfactants) != 3 or len(list_of_ratios) != 3 or len(stock_concs) != 3:
+        raise ValueError("Inputs must all have 3 elements.")
+    if sum(list_of_ratios) != 1:
+        raise ValueError("Sum of surfactant ratios must be == 1")
 
     estimated_CMC = CMC_estimate(list_of_surfactants, list_of_ratios)
     cmc_concentrations = generate_cmc_concentrations(estimated_CMC)
