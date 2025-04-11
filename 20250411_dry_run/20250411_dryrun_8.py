@@ -1,7 +1,7 @@
 from opentrons import protocol_api
 
 metadata = {
-    "protocolName": "CMC Project_V0",
+#    "protocolName": "CMC Project_V0",
     "description": "Written on 2025.03.02",
     "author": "Zeqing Bao"
 }
@@ -76,15 +76,20 @@ def run(protocol: protocol_api.ProtocolContext):
     # to be rewritten according to the exp design
 ################################################################################################################################################
 
-    exp_list = {'exp1': {'surfactant_mix_stock_vols': {'s1': 463.5272727272727, 's3': 198.65454545454543, 'None_3': 0, 'water': 1137.818181818182}, 'solvent_mix_vol': [2.0233333333333334, 2.8614254412015625, 4.046666666666667, 4.5525, 5.1595, 5.766500000000001, 6.3735, 6.9805, 7.5875, 9.105, 12.87641448540703, 18.21], 'water_vol': [264.33, 250.8, 231.66, 223.49, 213.69, 203.89, 194.09, 184.29, 174.49, 149.99, 89.09, 2.97], 'pyrene_vol': [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]}, 'exp2': {'surfactant_mix_stock_vols': {'s1': 10.909090909090912, 'None_2': 0, 'None_3': 0, 'water': 1789.090909090909}, 'solvent_mix_vol': [0.03333333333333334, 0.047140452079103154, 0.06666666666666665, 0.07500000000000001, 0.085, 0.095, 0.10500000000000001, 0.115, 0.125, 0.15000000000000005, 0.2121320343559643, 0.30000000000000004], 'water_vol': [264.33, 250.8, 231.66, 223.49, 213.69, 203.89, 194.09, 184.29, 174.49, 149.98, 89.09, 2.97], 'pyrene_vol': [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]}, 'exp3': {'surfactant_mix_stock_vols': {'s2': 392.7272727272728, 's3': 1570.9090909090912, 'None_3': 0, 'water': -163.63636363636397}, 'solvent_mix_vol': [6.0, 8.485281374238571, 12.000000000000002, 13.5, 15.3, 17.1, 18.9, 20.7, 22.5, 27.000000000000004, 38.183766184073576, 54.000000000000014], 'water_vol': [264.33, 250.8, 231.66, 223.49, 213.69, 203.89, 194.09, 184.29, 174.49, 149.99, 89.09, 2.97], 'pyrene_vol': [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]}}
+    exp_list = {'exp1': {'surfactant_mix_stock_vols': {'s1': 10.909090909090912, 'None_2': 0, 'None_3': 0, 'water': 1789.090909090909}, 'solvent_mix_vol': [32.67, 46.2, 65.34, 73.51, 83.31, 93.11, 102.91, 112.71, 122.51, 147.02, 207.91, 294.03], 'water_vol': [264.33, 250.8, 231.66, 223.49, 213.69, 203.89, 194.09, 184.29, 174.49, 149.98, 89.09, 2.97], 'pyrene_vol': [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]}, 'exp2': {'surfactant_mix_stock_vols': {'s1': 230.0727272727273, 's2': 536.8363636363637, 'None_3': 0, 'water': 1033.090909090909}, 'solvent_mix_vol': [32.67, 46.2, 65.34, 73.51, 83.31, 93.11, 102.91, 112.71, 122.51, 147.01, 207.91, 294.03], 'water_vol': [264.33, 250.8, 231.66, 223.49, 213.69, 203.89, 194.09, 184.29, 174.49, 149.99, 89.09, 2.97], 'pyrene_vol': [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]}, 'exp3': {'surfactant_mix_stock_vols': {'s1': 240.4363636363637, 's2': 601.0909090909092, 's3': 360.6545454545455, 'water': 597.8181818181815}, 'solvent_mix_vol': [32.67, 46.2, 65.34, 73.51, 83.31, 93.11, 102.91, 112.71, 122.51, 147.01, 207.91, 294.03], 'water_vol': [264.33, 250.8, 231.66, 223.49, 213.69, 203.89, 194.09, 184.29, 174.49, 149.99, 89.09, 2.97], 'pyrene_vol': [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]}}
 
-    solvent_mix_loc = 'C1'
-    row = 'A'
+    solvent_mix_loc = 'A9'
+    row = 'F'
 
 ################################################################################################################################################
 
 
-    def CMC_surfactant_mix(exp, solvent_mix_loc):
+    def CMC_surfactant_combo (exp, solvent_mix_loc):
+
+        for pipette in [pipette_low, pipette_high]:
+            pipette.well_bottom_clearance.dispense = 25
+            pipette.well_bottom_clearance.aspirate = 3        
+
         for key in exp['surfactant_mix_stock_vols'].keys():
             vol = exp['surfactant_mix_stock_vols'][key]
             
@@ -93,6 +98,10 @@ def run(protocol: protocol_api.ProtocolContext):
             else:
                 pipette = pipette_high
 
+            pipette.flow_rate.aspirate = max(1, vol)
+            pipette.flow_rate.dispense = max(1, vol)
+
+            
             if vol > 0:
                 pipette.pick_up_tip()
                 pipette.transfer(
@@ -101,13 +110,33 @@ def run(protocol: protocol_api.ProtocolContext):
                     deepplate[solvent_mix_loc],
                     new_tip='never',
                     air_gap=vol / 20,
-                    blow_out=True
+                    # blow_out=True,
+                    # blow_out_location='destination well',
                 )
+                
+                pipette.touch_tip(deepplate[solvent_mix_loc])
                 pipette.drop_tip()
+
+    def CMC_surfactant_combo_mix (solvent_mix_loc):
+
+        pipette_high.flow_rate.aspirate = 100
+        pipette_high.flow_rate.dispense = 100
+        pipette_high.well_bottom_clearance.dispense = 12
+        pipette_high.well_bottom_clearance.aspirate = 12
+
+        pipette_high.pick_up_tip(tip1000)
+
+        pipette_high.mix(10, 100, deepplate[solvent_mix_loc])
+#        pipette_high.blow_out(deepplate[solvent_mix_loc])
+        pipette_high.drop_tip()
 
 
 
     def process_a_row(row, vols, source, destination, touch_tip):
+
+        for pipette in [pipette_low, pipette_high]:
+            pipette.well_bottom_clearance.dispense = 15
+            pipette.well_bottom_clearance.aspirate = 3
 
         def pipette_selection (vol):
             if vol <= 50:
@@ -125,18 +154,19 @@ def run(protocol: protocol_api.ProtocolContext):
                 new_pipette.pick_up_tip()
 
             if vol>0:
-                new_pipette.flow_rate.aspirate = vol
-                new_pipette.flow_rate.dispense = vol
-                new_pipette.flow_rate.blow_out = vol * 5
+                new_pipette.flow_rate.aspirate = max(1, vol)
+                new_pipette.flow_rate.dispense = max(1, vol)
+                new_pipette.flow_rate.blow_out = max(5, vol * 5)
 
 
             transfer_repeat = int((vol // 200) + 1)
 
             for _ in range(transfer_repeat):
-                new_pipette.transfer(vol/transfer_repeat, source, destination[row + str(i+1)], new_tip='never', air_gap=vol/10)
-
-            if touch_tip:
-                new_pipette.touch_tip(destination[row + str(i+1)])
+                new_pipette.transfer(vol/transfer_repeat, source, destination[row + str(i+1)], new_tip='never', air_gap=(vol/transfer_repeat)/20, 
+            #                         blow_out=True, blow_out_location='destination well'
+                                     )
+                if touch_tip:
+                    new_pipette.touch_tip(destination[row + str(i+1)])
 
             last_pipette = new_pipette
 
@@ -145,7 +175,10 @@ def run(protocol: protocol_api.ProtocolContext):
 
 
     def CMC (exp, row, solvent_mix_loc):
-        process_a_row(row, exp['water_vol'], water, plate, touch_tip=0)
+        for pipette in [pipette_low, pipette_high]:
+            pipette.well_bottom_clearance.dispense = 11
+            pipette.well_bottom_clearance.aspirate = 3
+        process_a_row(row, exp['water_vol'], water, plate, touch_tip=1)
         process_a_row(row, exp['pyrene_vol'], pyrene, plate, touch_tip=1)
         process_a_row(row, exp['solvent_mix_vol'], deepplate[solvent_mix_loc], plate, touch_tip=1)
 
@@ -169,22 +202,35 @@ def run(protocol: protocol_api.ProtocolContext):
         return f"{row}{col}"
 
 
-    ###  no pipette change just for test  ###
+    ##########################################  no pipette change just for test  #############################################
     def CMC_mix_row(row):
         pipette_high.pick_up_tip(tip1000)
         for col in range(1, 13):
-            pipette_high.mix(3, 200, deepplate[row + str(col)])
-            pipette_high.transfer(200, deepplate[row + str(col)], plate[row + str(col)], new_tip='never', blow_out=True)
+            pipette_high.mix(3, 200, plate[row + str(col)])
         pipette_high.drop_tip()
+
+
+
 
     # Run the exps
     for exp_key in exp_list.keys():
         exp = exp_list[exp_key]
 
-        CMC_surfactant_mix(exp, solvent_mix_loc)
+        # prepare surfactant combo
+        CMC_surfactant_combo(exp, solvent_mix_loc)
+
+        # mix the surfactant combo
+        CMC_surfactant_combo_mix(solvent_mix_loc)
+
+        # prepare cmc dilutions
         CMC(exp, row, solvent_mix_loc)
+
+        # mix the cmc dilutions
         CMC_mix_row(row)
 
+        # move to next well for solvent mix
         solvent_mix_loc = next_well(solvent_mix_loc)
+
+        # move to next row for cmc dilutions
         row = chr(ord(row) + 1)
 

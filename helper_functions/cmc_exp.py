@@ -219,7 +219,7 @@ def generate_exp(list_of_surfactants, list_of_ratios, stock_concs=[50, 50, 50]):
     small_exp = {
 
         "surfactant_mix_stock_vols": mix_stock_vol,
-        "solvent_mix_vol": df["concentration"].tolist(),
+        "solvent_mix_vol": df["surfactant volume"].tolist(),
         "water_vol": df["water volume"].tolist(),
         "pyrene_vol": df["probe volume"].tolist(),
     }
