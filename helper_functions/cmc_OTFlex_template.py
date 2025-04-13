@@ -115,7 +115,7 @@ def run(protocol: protocol_api.ProtocolContext):
         for key in exp['surfactant_mix_stock_vols'].keys():
             vol = exp['surfactant_mix_stock_vols'][key]
             
-            if 0 < vol < 50:
+            if 0 < vol < 40:
                 pipette = pipette_low
             else:
                 pipette = pipette_high
@@ -157,7 +157,7 @@ def run(protocol: protocol_api.ProtocolContext):
             pipette.well_bottom_clearance.aspirate = 3
 
         def pipette_selection (vol):
-            if vol <= 50:
+            if vol <= 40:
                 return pipette_low
             else:
                 return pipette_high
