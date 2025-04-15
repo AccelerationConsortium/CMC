@@ -5,78 +5,128 @@ import pandas as pd
 
 # surfactant_library
 surfactant_library = {
-    "s1": {
-        "MW": "tba",
-        "CAS": "tba",
+    "SDS": {
+        "full_name": "Sodium Dodecyl Sulfate",
+        "CAS": "151-21-3",
+        "CMC": 8.3,
+        "Category": "anionic",
+    },
+
+
+    "SLS": {
+        "full_name": "Sodium Lauryl Sulfate",
+        "CAS": "151-21-3",
+        "CMC": 7.7,
+        "Category": "anionic",
+    },
+
+
+    "NaDC": {
+        "full_name": "Sodium Docusate",
+        "CAS": "577-11-7",
+        "CMC": 8.2,
+        "Category": "anionic",
+    },
+
+    
+    "NaC": {
+        "full_name": "Sodium Cholate",
+        "CAS": "361-09-1",
+        "CMC": 11,
+        "Category": "anionic",
+    },
+
+
+    "CTAB": {
+        "full_name": "Hexadecyltrimethylammonium Bromide",
+        "CAS": "57-09-0",
+        "CMC": 0.93,
+        "Category": "cationic",
+    },
+
+
+    "DTAB": {
+        "full_name": "Dodecyltrimethylammonium Bromide",
+        "CAS": "1119-94-4",
+        "CMC": 15.85,
+        "Category": "cationic",
+    },
+
+
+    "TTAB": {
+        "full_name": "Tetradecyltrimethylammonium Bromide",
+        "CAS": "1119-97-7",
+        "CMC": 3.77,
+        "Category": "cationic",
+    },
+
+
+    "BAC": {
+        "full_name": "Benzalkonium Chloride",
+        "CAS": "63449-41-2",
+        "CMC": 0.42,
+        "Category": "cationic",
+    },
+
+
+    "T80": {
+        "full_name": "Tween 80",
+        "CAS": "9005-65-6",
+        "CMC": 0.015,
+        "Category": "nonionic",
+    },
+
+    
+    "T20": {
+        "full_name": "Tween 20",
+        "CAS": "9005-64-5",
+        "CMC": 0.0355,
+        "Category": "nonionic",
+    },
+
+
+    "P188": {
+        "full_name": "Kolliphor® P 188 Geismar",
+        "CAS": "9003-11-6",
+        "CMC": 0.325,
+        "Category": "nonionic",
+    },
+
+
+    "P407": {
+        "full_name": "Kolliphor® P 407 Geismar",
+        "CAS": "9003-11-6",
         "CMC": 0.1,
-        "SMILES": "tba"
+        "Category": "nonionic",
     },
-    "s2": {
-        "MW": "tba",
-        "CAS": "tba",
-        "CMC": 10,
-        "SMILES": "tba"
+
+    "CAPB": {
+        "full_name": "Cocamidopropyl Betaine",
+        "CAS": "61789-40-0",
+        "CMC": 0.627,
+        "Category": "zwitterionic",
     },
-    "s3": {
-        "MW": "tba",
-        "CAS": "tba",
-        "CMC": 20,
-        "SMILES": "tba"
+
+    "SBS-12": {
+        "full_name": "Sulfobetaine-12",
+        "CAS": "14933-08-5",
+        "CMC": 3,
+        "Category": "zwitterionic",
     },
-    "s4": {
-        "MW": "tba",
-        "CAS": "tba",
-        "CMC": "tba",
-        "SMILES": "tba"
+
+    "SBS-14": {
+        "full_name": "Sulfobetaine-14",
+        "CAS": "14933-09-6",
+        "CMC": 0.16,
+        "Category": "zwitterionic",
     },
-    "s5": {
-        "MW": "tba",
-        "CAS": "tba",
-        "CMC": "tba",
-        "SMILES": "tba"
-    },
-    "s6": {
-        "MW": "tba",
-        "CAS": "tba",
-        "CMC": "tba",
-        "SMILES": "tba"
-    },
-    "s7": {
-        "MW": "tba",
-        "CAS": "tba",
-        "CMC": "tba",
-        "SMILES": "tba"
-    },
-    "s8": {
-        "MW": "tba",
-        "CAS": "tba",
-        "CMC": "tba",
-        "SMILES": "tba"
-    },
-    "s9": {
-        "MW": "tba",
-        "CAS": "tba",
-        "CMC": "tba",
-        "SMILES": "tba"
-    },
-    "s10": {
-        "MW": "tba",
-        "CAS": "tba",
-        "CMC": "tba",
-        "SMILES": "tba"
-    },
-    "s11": {
-        "MW": "tba",
-        "CAS": "tba",
-        "CMC": "tba",
-        "SMILES": "tba"
-    },
-    "s12": {
-        "MW": "tba",
-        "CAS": "tba",
-        "CMC": "tba",
-        "SMILES": "tba"
-    },
+    
+    "CHAPS": {
+        "full_name": "CHAPS",
+        "CAS": "75621-03-3",
+        "CMC": 8.5,
+        "Category": "zwitterionic",
+    }
 }
 
 def CMC_estimate(list_of_surfactants, list_of_ratios):
