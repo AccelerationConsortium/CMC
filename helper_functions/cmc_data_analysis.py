@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
-import pandas as pd
 
 
 # Define the Boltzmann sigmoid function
@@ -17,7 +16,7 @@ def CMC_plot(i1_i3_ratio, conc):
     A1, A2, x0, dx = popt
 
     # Compute the second CMC (xCMC2) using the derived formula
-    xCMC2 = x0 + dx * np.log((A1 - A2) / (0.5 * (A1 - A2)))
+#    xCMC2 = x0 + dx * np.log((A1 - A2) / (0.5 * (A1 - A2)))
 
     # Compute R-squared value for goodness of fit
     residuals = i1_i3_ratio - boltzmann(conc, *popt)
@@ -33,7 +32,7 @@ def CMC_plot(i1_i3_ratio, conc):
     plt.scatter(conc, i1_i3_ratio, label='Experimental Data', color='blue')
     plt.plot(x_fit, y_fit, label='Boltzmann Fit', color='red')
     plt.axvline(x0, linestyle='--', color='green', label=f'(xCMC)1 = {x0:.2f} mM')
-    plt.axvline(xCMC2, linestyle='--', color='purple', label=f'(xCMC)2 = {xCMC2:.2f} mM')
+#    plt.axvline(xCMC2, linestyle='--', color='purple', label=f'(xCMC)2 = {xCMC2:.2f} mM')
     plt.xlabel('SDS Concentration (mM)')
     plt.ylabel('I₁/I₃ Ratio')
     plt.title('CMC Determination using Boltzmann Fit')
@@ -43,6 +42,4 @@ def CMC_plot(i1_i3_ratio, conc):
 
     # Output the computed CMC values and R-squared
     print(f'Estimated (xCMC)1: {x0:.2f} mM')
-    print(f'Estimated (xCMC)2: {xCMC2:.2f} mM')
-    print(f'Average (xCMC)1/2: {(x0 + xCMC2)/2:.2f} mM')
     print(f'Fit Accuracy (R²): {r_squared:.4f}')

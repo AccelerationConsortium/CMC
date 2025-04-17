@@ -76,10 +76,10 @@ def run(protocol: protocol_api.ProtocolContext):
     # to be rewritten according to the exp design
 ################################################################################################################################################
 
-    exp_list = {'exp1': {'surfactant_mix_stock_vols': {'s1': 10.909090909090912, 'None_2': 0, 'None_3': 0, 'water': 1789.090909090909}, 'solvent_mix_vol': [32.67, 46.2, 65.34, 73.51, 83.31, 93.11, 102.91, 112.71, 122.51, 147.02, 207.91, 294.03], 'water_vol': [264.33, 250.8, 231.66, 223.49, 213.69, 203.89, 194.09, 184.29, 174.49, 149.98, 89.09, 2.97], 'pyrene_vol': [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]}, 'exp2': {'surfactant_mix_stock_vols': {'s1': 230.0727272727273, 's2': 536.8363636363637, 'None_3': 0, 'water': 1033.090909090909}, 'solvent_mix_vol': [32.67, 46.2, 65.34, 73.51, 83.31, 93.11, 102.91, 112.71, 122.51, 147.01, 207.91, 294.03], 'water_vol': [264.33, 250.8, 231.66, 223.49, 213.69, 203.89, 194.09, 184.29, 174.49, 149.99, 89.09, 2.97], 'pyrene_vol': [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]}, 'exp3': {'surfactant_mix_stock_vols': {'s1': 240.4363636363637, 's2': 601.0909090909092, 's3': 360.6545454545455, 'water': 597.8181818181815}, 'solvent_mix_vol': [32.67, 46.2, 65.34, 73.51, 83.31, 93.11, 102.91, 112.71, 122.51, 147.01, 207.91, 294.03], 'water_vol': [264.33, 250.8, 231.66, 223.49, 213.69, 203.89, 194.09, 184.29, 174.49, 149.99, 89.09, 2.97], 'pyrene_vol': [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]}}
+    exp_list = {'exp2': {'surfactant_mix_stock_vols': {'SDS': 4.601954014820275, 'T20': 10.737892701247308, 'None_3': 0, 'water': 4984.660153283932}, 'solvent_mix_vol': [108.9, 154.01, 217.8, 245.03, 277.69, 310.37, 343.03, 375.71, 408.38, 490.05, 693.04, 980.1], 'water_vol': [881.1, 835.99, 772.2, 744.98, 712.31, 679.63, 646.97, 614.29, 581.62, 499.95, 296.96, 9.9], 'pyrene_vol': [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10]}, 'exp3': {'surfactant_mix_stock_vols': {'BAC': 12.085795869579654, 'P188': 30.21448967394913, 'P407': 18.12869380436948, 'water': 4939.571020652102}, 'solvent_mix_vol': [108.9, 154.01, 217.8, 245.02, 277.69, 310.37, 343.04, 375.7, 408.38, 490.05, 693.04, 980.1], 'water_vol': [881.1, 835.99, 772.2, 744.98, 712.31, 679.63, 646.96, 614.3, 581.62, 499.95, 296.96, 9.9], 'pyrene_vol': [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10]}}
 
-    solvent_mix_loc = 'A9'
-    row = 'F'
+    solvent_mix_loc = 'B1'
+    row = 'G'
 
 ################################################################################################################################################
 
@@ -87,13 +87,13 @@ def run(protocol: protocol_api.ProtocolContext):
     def CMC_surfactant_combo (exp, solvent_mix_loc):
 
         for pipette in [pipette_low, pipette_high]:
-            pipette.well_bottom_clearance.dispense = 25
+            pipette.well_bottom_clearance.dispense = 40
             pipette.well_bottom_clearance.aspirate = 3        
 
         for key in exp['surfactant_mix_stock_vols'].keys():
             vol = exp['surfactant_mix_stock_vols'][key]
             
-            if 0 < vol < 50:
+            if 0 < vol < 40:
                 pipette = pipette_low
             else:
                 pipette = pipette_high
@@ -104,12 +104,8 @@ def run(protocol: protocol_api.ProtocolContext):
             
             if vol > 0:
                 pipette.pick_up_tip()
-                pipette.transfer(
-                    vol,
-                    sources[key],
-                    deepplate[solvent_mix_loc],
-                    new_tip='never',
-                    air_gap=vol / 20,
+                pipette.transfer(vol,
+                    sources[key], deepplate[solvent_mix_loc], new_tip='never', air_gap= vol/20,
                     # blow_out=True,
                     # blow_out_location='destination well',
                 )
@@ -139,7 +135,7 @@ def run(protocol: protocol_api.ProtocolContext):
             pipette.well_bottom_clearance.aspirate = 3
 
         def pipette_selection (vol):
-            if vol <= 50:
+            if vol <= 40:
                 return pipette_low
             else:
                 return pipette_high
@@ -162,7 +158,7 @@ def run(protocol: protocol_api.ProtocolContext):
             transfer_repeat = int((vol // 200) + 1)
 
             for _ in range(transfer_repeat):
-                new_pipette.transfer(vol/transfer_repeat, source, destination[row + str(i+1)], new_tip='never', air_gap=(vol/transfer_repeat)/20, 
+                new_pipette.transfer(vol/transfer_repeat, source, destination[row + str(i+1)], new_tip='never', air_gap=(vol/transfer_repeat)/10, 
             #                         blow_out=True, blow_out_location='destination well'
                                      )
                 if touch_tip:
@@ -204,12 +200,14 @@ def run(protocol: protocol_api.ProtocolContext):
 
     ##########################################  no pipette change just for test  #############################################
     def CMC_mix_row(row):
+
+        pipette_high.flow_rate.aspirate = 100
+        pipette_high.flow_rate.dispense = 100
+
         pipette_high.pick_up_tip(tip1000)
         for col in range(1, 13):
-            pipette_high.mix(3, 200, plate[row + str(col)])
+            pipette_high.mix(5, 50, plate[row + str(col)])
         pipette_high.drop_tip()
-
-
 
 
     # Run the exps
