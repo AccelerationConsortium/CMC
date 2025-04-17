@@ -8,7 +8,7 @@ There are four main helper Python files:
 
 ### 1. `cmc_data_analysis.py`
 
-- Fits the I3/I1 fluorescence intensity ratio as a function of surfactant concentration.
+- Fits the I1/I3 fluorescence intensity ratio as a function of surfactant concentration.
 - Determines the CMC (critical micelle concentration) from the curve.
 - Returns the fitting scores and calculated CMC.
 
