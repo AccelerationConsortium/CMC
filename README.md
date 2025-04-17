@@ -5,7 +5,7 @@ This toolkit helps plan, execute, and analyze Critical Micelle Concentration (CM
 ## 📁 Repository Structure
 
 - **`cmc_data_analysis.py`**  
-  Fits the I3/I1 fluorescence intensity ratio as a function of surfactant concentration and determines the CMC along with goodness-of-fit scores.
+  Fits the I1/I3 fluorescence intensity ratio as a function of surfactant concentration and determines the CMC along with goodness-of-fit scores.
 
 - **`cmc_exp.py`**  
   Provides a comprehensive set of functions to convert a surfactant mixture (up to 3 components with user-defined ratios) into actionable volumes for experimental preparation.
