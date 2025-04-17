@@ -170,10 +170,10 @@ def surfactant_substock(cmc_concs, list_of_surfactants, list_of_ratios,
 
     # Calculate adjusted mix stock concentration
     max_cmc_conc = max(cmc_concs)
-    mix_stock_conc = max_cmc_conc / ((CMC_sample_volume - probe_volume) / CMC_sample_volume)
+    sub_stock_concentration = max_cmc_conc / ((CMC_sample_volume - probe_volume) / CMC_sample_volume)
 
     # Total moles needed
-    total_mmol = mix_stock_conc * sub_stock_volume / 1000  # mmol
+    total_mmol = sub_stock_concentration * sub_stock_volume / 1000  # mmol
 
     result = {}
     total_surfactant_volume = 0
@@ -194,12 +194,12 @@ def surfactant_substock(cmc_concs, list_of_surfactants, list_of_ratios,
 
     result['water'] = sub_stock_volume - total_surfactant_volume
 
-    return mix_stock_conc, result
+    return sub_stock_concentration, result
 
 
 
 
-def calculate_volumes(concentration_list, stock_concentration, probe_volume, CMC_sample_volume):
+def calculate_volumes(concentration_list, sub_stock_concentration, probe_volume, CMC_sample_volume):
 
 
     concentrations = []
@@ -209,7 +209,7 @@ def calculate_volumes(concentration_list, stock_concentration, probe_volume, CMC
     total_volumes = []
 
     for conc in concentration_list:
-        surfactant_volume = (conc * (CMC_sample_volume - probe_volume)) / stock_concentration
+        surfactant_volume = (conc * (CMC_sample_volume - probe_volume)) / sub_stock_concentration
         water_volume = CMC_sample_volume - probe_volume - surfactant_volume
 
         # Round for consistency
@@ -244,7 +244,7 @@ def generate_exp(list_of_surfactants, list_of_ratios, stock_concs=[50, 50, 50], 
     estimated_CMC = CMC_estimate(list_of_surfactants, list_of_ratios)
     cmc_concs = generate_cmc_concentrations(estimated_CMC)
 
-    mix_stock_conc, mix_stock_vol = surfactant_substock(cmc_concs = cmc_concs, 
+    sub_stock_concentration, sub_stock_vol = surfactant_substock(cmc_concs = cmc_concs, 
                                                         list_of_surfactants = list_of_surfactants, 
                                                         list_of_ratios = list_of_ratios, 
                                                         stock_concs=stock_concs,
@@ -253,15 +253,15 @@ def generate_exp(list_of_surfactants, list_of_ratios, stock_concs=[50, 50, 50], 
                                                         CMC_sample_volume = CMC_sample_volume,
                                                         )
     
-    df = calculate_volumes(cmc_concs, mix_stock_conc, probe_volume = probe_volume, CMC_sample_volume = CMC_sample_volume)
+    df = calculate_volumes(cmc_concs, sub_stock_concentration, probe_volume = probe_volume, CMC_sample_volume = CMC_sample_volume)
 
     # All info
     exp = {
         "list_of_surfactants": list_of_surfactants,
         "list_of_ratios": list_of_ratios,
         "original_surfactant_stock_concs": stock_concs,
-        "surfactant_mix_stock_conc": mix_stock_conc,
-        "surfactant_mix_stock_vols": mix_stock_vol,
+        "surfactant_sub_stock_conc": sub_stock_concentration,
+        "surfactant_sub_stock_vols": sub_stock_vol,
         "estimated_CMC": estimated_CMC,
         "df": df,
     }
@@ -269,8 +269,8 @@ def generate_exp(list_of_surfactants, list_of_ratios, stock_concs=[50, 50, 50], 
     # Info needed to generate OTFlex protocol
     small_exp = {
 
-        "surfactant_mix_stock_vols": mix_stock_vol,
-        "solvent_mix_vol": df["surfactant volume"].tolist(),
+        "surfactant_sub_stock_vols": sub_stock_vol,
+        "solvent_sub_vol": df["surfactant volume"].tolist(),
         "water_vol": df["water volume"].tolist(),
         "pyrene_vol": df["probe volume"].tolist(),
     }
