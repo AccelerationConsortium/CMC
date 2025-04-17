@@ -27,11 +27,3 @@ This toolkit helps plan, execute, and analyze Critical Micelle Concentration (CM
 - **`20250417_example.ipynb`**  
   Example notebook demonstrating how to use the toolkit end-to-end, including planning and protocol generation.
 
----
-
-## 🚀 Quick Start
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/cmc-toolkit.git
-   cd cmc-toolkit
