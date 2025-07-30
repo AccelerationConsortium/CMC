@@ -33,7 +33,7 @@ def CMC_plot(i1_i3_ratio, conc):
     plt.plot(x_fit, y_fit, label='Boltzmann Fit', color='red')
     plt.axvline(x0, linestyle='--', color='green', label=f'(xCMC)1 = {x0:.2f} mM')
 #    plt.axvline(xCMC2, linestyle='--', color='purple', label=f'(xCMC)2 = {xCMC2:.2f} mM')
-    plt.xlabel('SDS Concentration (mM)')
+    plt.xlabel('Surfactant Concentration (mM)')
     plt.ylabel('I₁/I₃ Ratio')
     plt.title('CMC Determination using Boltzmann Fit')
     plt.legend()
@@ -41,5 +41,7 @@ def CMC_plot(i1_i3_ratio, conc):
     plt.show()
 
     # Output the computed CMC values and R-squared
-    print(f'Estimated (xCMC)1: {x0:.2f} mM')
+    print(f'Estimated CMC: {x0:.2f} mM')
     print(f'Fit Accuracy (R²): {r_squared:.4f}')
+
+    return A1, A2, x0, dx, r_squared

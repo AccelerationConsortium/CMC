@@ -8,40 +8,40 @@ surfactant_library = {
     "SDS": {
         "full_name": "Sodium Dodecyl Sulfate",
         "CAS": "151-21-3",
-        "CMC": 8.3,
+        "CMC": 8.5,
         "Category": "anionic",
-    },
-
-
-    "SLS": {
-        "full_name": "Sodium Lauryl Sulfate",
-        "CAS": "151-21-3",
-        "CMC": 7.7,
-        "Category": "anionic",
+        "MW": 289.39,
+        "stock_conc": 50,  # mM
     },
 
 
     "NaDC": {
         "full_name": "Sodium Docusate",
         "CAS": "577-11-7",
-        "CMC": 8.2,
+        "CMC": 5.3375,
         "Category": "anionic",
+        "MW": 445.57,
+        "stock_conc": 25,  # mM
     },
 
     
     "NaC": {
         "full_name": "Sodium Cholate",
         "CAS": "361-09-1",
-        "CMC": 11,
+        "CMC": 14,
         "Category": "anionic",
+        "MW": 431.56,
+        "stock_conc": 50,  # mM
     },
 
 
     "CTAB": {
         "full_name": "Hexadecyltrimethylammonium Bromide",
         "CAS": "57-09-0",
-        "CMC": 0.93,
+        "CMC": 1.07,
         "Category": "cationic",
+        "MW": 364.45,
+        "stock_conc": 5 # mM
     },
 
 
@@ -50,82 +50,56 @@ surfactant_library = {
         "CAS": "1119-94-4",
         "CMC": 15.85,
         "Category": "cationic",
+        "MW": 308.34,
+        "stock_conc": 50,  # mM
     },
 
 
     "TTAB": {
         "full_name": "Tetradecyltrimethylammonium Bromide",
         "CAS": "1119-97-7",
-        "CMC": 3.77,
+        "CMC": 3.985,
         "Category": "cationic",
+        "MW": 336.39,
+        "stock_conc": 50,  # mM
     },
 
 
-    "BAC": {
-        "full_name": "Benzalkonium Chloride",
-        "CAS": "63449-41-2",
-        "CMC": 0.42,
-        "Category": "cationic",
-    },
+    # "P188": {
+    #     "full_name": "Kolliphor® P 188 Geismar",
+    #     "CAS": "9003-11-6",
+    #     "CMC": 0.48,
+    #     "Category": "nonionic",
+    #     "MW": 8595,
+    #     "stock_conc": 2,  # mM
+    # },
 
 
-    "T80": {
-        "full_name": "Tween 80",
-        "CAS": "9005-65-6",
-        "CMC": 0.015,
-        "Category": "nonionic",
-    },
-
-    
-    "T20": {
-        "full_name": "Tween 20",
-        "CAS": "9005-64-5",
-        "CMC": 0.0355,
-        "Category": "nonionic",
-    },
-
-
-    "P188": {
-        "full_name": "Kolliphor® P 188 Geismar",
-        "CAS": "9003-11-6",
-        "CMC": 0.325,
-        "Category": "nonionic",
-    },
-
-
-    "P407": {
-        "full_name": "Kolliphor® P 407 Geismar",
-        "CAS": "9003-11-6",
-        "CMC": 0.1,
-        "Category": "nonionic",
-    },
+    # "P407": {
+    #     "full_name": "Kolliphor® P 407 Geismar",
+    #     "CAS": "9003-11-6",
+    #     "CMC": 0.5,   ## not sure about this value
+    #     "Category": "nonionic",
+    #     "MW": 12300,
+    #     "stock_conc": 2,  # mM
+    # },
 
     "CAPB": {
         "full_name": "Cocamidopropyl Betaine",
         "CAS": "61789-40-0",
         "CMC": 0.627,
         "Category": "zwitterionic",
-    },
-
-    "SBS-12": {
-        "full_name": "Sulfobetaine-12",
-        "CAS": "14933-08-5",
-        "CMC": 3,
-        "Category": "zwitterionic",
-    },
-
-    "SBS-14": {
-        "full_name": "Sulfobetaine-14",
-        "CAS": "14933-09-6",
-        "CMC": 0.16,
-        "Category": "zwitterionic",
+        "MW": 342.52,
+        "stock_conc": 50,  # mM
     },
     
     "CHAPS": {
         "full_name": "CHAPS",
         "CAS": "75621-03-3",
-        "CMC": 8.5,
+        "CMC": 8,
         "Category": "zwitterionic",
+        "MW": 614.88,
+        "stock_conc": 30,  # mM
     }
 }
 
@@ -135,12 +109,19 @@ def CMC_estimate(list_of_surfactants, list_of_ratios):
 
     cmc_inverse_sum = 0.0
 
+    print("This batch of surfactants are: ")
+    print(list_of_surfactants)
+    print("This batch of ratios are: ")
+    print(list_of_ratios)
+    print()
+
     for surfactant, ratio in zip(list_of_surfactants, list_of_ratios):
         if surfactant is not None:
             cmc = surfactant_library[surfactant]['CMC']
             cmc_inverse_sum += ratio / cmc
 
     if cmc_inverse_sum == 0:
+        print("Warning: CMC inverse sum is zero. Check surfactant inputs.")
         return None
     else:
         return 1 / cmc_inverse_sum
@@ -150,18 +131,59 @@ def CMC_estimate(list_of_surfactants, list_of_ratios):
 # and fewer points further away
 def generate_cmc_concentrations(cmc):
     """
-    Generate 12 concentration points from cmc/3 to cmc*3.
+    Generate 12 concentration points from cmc/2.5 to cmc*2.5.
     """
-    # Log-spaced: from cmc/10 to cmc/1.5 (3 points)
-    below = np.logspace(np.log10(cmc / 3), np.log10(cmc / 1.5), 3)
+    # Log-spaced: from cmc/2.5 to cmc/1.5 (3 points)
+    below = np.logspace(np.log10(cmc / 2.5), np.log10(cmc / 1.5), 3)
 
     # Linearly spaced: ±25% around CMC (6 points)
     around = np.linspace(cmc * 0.75, cmc * 1.25, 6)
 
-    # Log-spaced: from cmc*1.5 to cmc*10 (3 points)
-    above = np.logspace(np.log10(cmc * 1.5), np.log10(cmc * 3), 3)
+    # Log-spaced: from cmc*1.5 to cmc*2.5 (3 points)
+    above = np.logspace(np.log10(cmc * 1.5), np.log10(cmc * 2.5), 3)
+
+    print(f"CMC estimate: ")
+    print(cmc)
+    print()
+    print(f"Generated concentrations (refined): ")
+    print(np.concatenate([below, around, above]))
 
     return np.concatenate([below, around, above]).tolist()
+
+
+
+def rough_generate_cmc_concentrations(list_of_surfactants, list_of_ratios, estimate_cmc, number_of_points=12 ,scale="log"): # low/high in mM
+    max_conc = 0
+
+    for surfactant, ratio in zip(list_of_surfactants, list_of_ratios):
+        if surfactant is not None:
+            stock_conc = surfactant_library[surfactant]['stock_conc']
+
+            max_conc = max_conc + stock_conc * ratio
+
+    max_conc = max_conc * 0.8  # Allowing for a bit of extra space
+    low = estimate_cmc / (50**0.5)
+    high = estimate_cmc * (50**0.5)
+
+    if high > max_conc:
+        print(f"Warning: High concentration {high} exceeds maximum stock concentration {max_conc}. Adjusting high to max stock concentration.")
+        high = max_conc
+
+    if scale == "log":
+        exponent_low = np.round(np.log10(low), 3)
+        exponent_high = np.round(np.log10(high), 3)
+        concentrations = np.round(np.logspace(exponent_low, exponent_high, number_of_points), 3)
+    
+    elif scale == "linear":
+        concentrations = np.round(np.linspace(low, high, number_of_points), 3)
+
+    print(f"CMC estimate: ")
+    print(estimate_cmc)
+    print()
+    print(f"Generated concentrations (rough): ")
+    print(concentrations)
+    return concentrations.tolist()
+
 
 
 # function to prepare a surfactant mix as a surfactant/surfactant mixture sub-stock    
@@ -194,13 +216,16 @@ def surfactant_substock(cmc_concs, list_of_surfactants, list_of_ratios,
 
     result['water'] = sub_stock_volume - total_surfactant_volume
 
+    print(f"Sub-stock concentration: ")
+    print(f"{sub_stock_concentration} mM")
+    print()
+    # print("result")
+    # print(result)
     return sub_stock_concentration, result
 
 
 
-
 def calculate_volumes(concentration_list, sub_stock_concentration, probe_volume, CMC_sample_volume):
-
 
     concentrations = []
     surfactant_volumes = []
@@ -233,13 +258,31 @@ def calculate_volumes(concentration_list, sub_stock_concentration, probe_volume,
 
     return df
 
-def generate_exp(list_of_surfactants, list_of_ratios, stock_concs=[50, 50, 50], probe_volume = 10, sub_stock_volume = 5000, CMC_sample_volume=1000):
+def generate_exp(list_of_surfactants, list_of_ratios, probe_volume = 30, sub_stock_volume = 5000, CMC_sample_volume=1000):
+
+    ## to confirm probe_volume = 30, sub_stock_volume = 5000, CMC_sample_volume=1000 ##
+
+    stock_concs = []
+    for surf in list_of_surfactants:
+
+        if surf is None:
+            stock_concs.append(0)
+
+        elif surf in surfactant_library:
+            stock = surfactant_library[surf].get("stock_conc")
+            if stock is None:
+                raise ValueError(f"Stock concentration missing for {surf}.")
+            stock_concs.append(stock)
+        else:
+            raise KeyError(f"{surf} not found in the surfactant library.")
 
         # Validations
     if len(list_of_surfactants) != 3 or len(list_of_ratios) != 3 or len(stock_concs) != 3:
         raise ValueError("Inputs must all have 3 elements.")
     if sum(list_of_ratios) != 1:
         raise ValueError("Sum of surfactant ratios must be == 1")
+
+
 
     estimated_CMC = CMC_estimate(list_of_surfactants, list_of_ratios)
     cmc_concs = generate_cmc_concentrations(estimated_CMC)
@@ -275,6 +318,17 @@ def generate_exp(list_of_surfactants, list_of_ratios, stock_concs=[50, 50, 50], 
         "pyrene_vol": df["probe volume"].tolist(),
     }
 
+    print("Experiment volume info:" )
+    print(small_exp)
     return exp, small_exp
 
 
+def mM_to_mg_per_mL(surfactant, concentration_mM):
+
+    if surfactant not in surfactant_library:
+        raise ValueError(f"Surfactant {surfactant} not found in library.")
+
+    MW = surfactant_library[surfactant]['MW']
+    concentration_mg_per_mL = (concentration_mM * MW) / 1000  # Convert mM to mg/mL
+
+    return concentration_mg_per_mL
