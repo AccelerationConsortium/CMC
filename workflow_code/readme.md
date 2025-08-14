@@ -8,5 +8,5 @@ This directory contains the files that were used to gather the CMC data using th
 
 - The <b>status</b> directory contains the physical input state files used by the robot to run the experiments (Not all of these were saved).
 
-- The <b>logs</b> directory contains the experimental logs for some of the experiments (Not all of these were saved). 
+- The <b>logs</b> directory contains the experimental logs for some of the experiments (Not all of these were saved as this feature was not fully implemented at the start of data gathering). 
 
