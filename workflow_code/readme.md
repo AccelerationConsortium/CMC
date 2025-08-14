@@ -1,16 +1,12 @@
 <h1> Main Workflow Code </h1>
 
-This directory contains the files that were used to gather the CMC data using the North-Cytation system. 
+This directory contains the files that were used to gather the CMC data using the North-Cytation system. They cannot be run without the North-Cytation code (https://github.com/owen-melville/North-Cytation)
 
-They cannot be run without the North-Cytation code (https://github.com/owen-melville/North-Cytation)
+- The <b>workflows</b> directory contains the workflow code that is used by the North-Cytation system to run the experiments. 
 
-- <b> cmc_shared.py </b> contains common workflow elements
-- <b> cmc_repeats.py </b> workflow for collecting timepoint, assay and measurement variation data
-- <b> cmc_rough_refined.py </b> contains common workflow elements
+- The <b>analysis</b> directory contains the code used to plan the experiments. 
 
-The analysis directory contains the analytical code and the combinations used for the different experimental sets. 
+- The <b>status</b> directory contains the physical input state files used by the robot to run the experiments (Not all of these were saved).
 
-The status directory contains the input state files for some of the experiments (Not all of these were saved).
-
-The logs directory contains the experimental logs for some of the experiments (Not all of these were saved). 
+- The <b>logs</b> directory contains the experimental logs for some of the experiments (Not all of these were saved). 
 
