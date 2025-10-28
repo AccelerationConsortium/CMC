@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 import re
 from pathlib import Path
 from scipy.optimize import curve_fit
@@ -17,11 +18,14 @@ surfactant_library = {
         "MW": 289.39,
         "stock_conc": 50,  # mM
         "low": 7,
-        "high": 10
+        "high": 10,
+        "ref_1": 8.3,
+        "ref_2": 8.25,
+        "ref_3": 7
     },
 
 
-    "NaDC": {
+    "DSS": {
         "full_name": "Sodium Docusate",
         "CAS": "577-11-7",
         "CMC": 5.3375,
@@ -29,7 +33,10 @@ surfactant_library = {
         "MW": 445.57,
         "stock_conc": 25,  # mM
         "low":2.48,
-        "high": 8.2
+        "high": 8.2,
+        "ref_1": 8.2,
+        "ref_2": 2.475,
+        "ref_3": 2.48
     },
 
     
@@ -42,6 +49,9 @@ surfactant_library = {
         "stock_conc": 50,  # mM
         "low": 13,
         "high":15,
+        "ref_1": 14,
+        "ref_2": 14,
+        "ref_3": 12,
     },
 
 
@@ -54,6 +64,9 @@ surfactant_library = {
         "stock_conc": 5, # mM
         "low": 0.9,
         "high": 1.24,
+        "ref_1": 0.92,
+        "ref_2": 1.24,
+        "ref_3": 0.9,
     },
 
 
@@ -65,7 +78,10 @@ surfactant_library = {
         "MW": 308.34,
         "stock_conc": 50,  # mM
         "low": 15.7,
-        "high": 16
+        "high": 16,
+        "ref_1": 15.7,
+        "ref_2": 16,
+        "ref_3": 16,
     },
 
 
@@ -77,7 +93,10 @@ surfactant_library = {
         "MW": 336.39,
         "stock_conc": 50,  # mM
         "low": 3.77,
-        "high": 4.2
+        "high": 4.2,
+        "ref_1": 4.2,
+        "ref_2": 3.8,
+        "ref_3": 3.77,
     },
 
     "CAPB": {
@@ -88,7 +107,10 @@ surfactant_library = {
         "MW": 342.52,
         "stock_conc": 50,  # mM
         "low": 0.28,
-        "high": 0.974
+        "high": 0.974,
+        "ref_1": 0.28,
+        "ref_2": 0.974,
+        "ref_3": 0.881,
     },
     
     "CHAPS": {
@@ -99,11 +121,14 @@ surfactant_library = {
         "MW": 614.88,
         "stock_conc": 30,  # mM
         "low": 6,
-        "high": 10
+        "high": 10,
+        "ref_1": 6.41,
+        "ref_2": 8,
+        "ref_3": 8,
     }
 }
 
-SURFACTANT_ORDER = ['SDS', 'NaDC', 'NaC', 'CTAB', 'DTAB', 'TTAB', 'CAPB', 'CHAPS']
+SURFACTANT_ORDER = ['SDS', 'DSS', 'NaC', 'CTAB', 'DTAB', 'TTAB', 'CAPB', 'CHAPS']
 
 red = '#e64b35'
 blue='#4dbbd5'
@@ -177,7 +202,7 @@ def CMC_plot(ax, ratio, conc ,log=1, plot=1):
             0.95, 0.95,
             f"CMC = {x0:.2f}\n$R^2$ = {r2:.3f}",
             transform=ax.transAxes, ha='right', va='top',
-            fontsize=8,
+            fontsize=12,
             bbox=dict(boxstyle="round,pad=0.3", fc="white",
                     ec="black", alpha=0.7)
         )
@@ -250,7 +275,9 @@ def reliability_analysis(df,
 
         # overall mean & std of all repeats
         mean_all = grp['CMC'].mean()
+        mean_10min = grp[grp[time_col]==10]['CMC'].mean()
         std_all  = grp['CMC'].std()
+        std_10min  = grp[grp[time_col]==10]['CMC'].std()
 
         # overall CV
         cv_overall = std_all/mean_all if len(grp)>1 and mean_all!=0 else np.nan
@@ -262,7 +289,9 @@ def reliability_analysis(df,
             'time CV':      cv_time,
             'overall CV':      cv_overall,
             'measured CMC':        mean_all,
-            'measured CMC STD':         std_all
+            'measured CMC STD':         std_all,
+            'measured CMC 10min': mean_10min,
+            'measured CMC STD 10min':  std_10min
         })
 
     result = pd.DataFrame(out)
@@ -286,8 +315,8 @@ def plot_cmc_comparison(
     surfactant_col='surfactant',
     surfactant_order=SURFACTANT_ORDER,
     offset=0.1,
-    measured_color = red,
-    literature_color= blue,
+    measured_color = blue,
+    literature_color= red,
     marker_size=8,
     line_width=4
 ):
@@ -302,7 +331,7 @@ def plot_cmc_comparison(
     for _, row in df_plot.iterrows():
         surf = row[surfactant_col]
         idx = surfactant_order.index(surf)
-        mean, std = row['measured CMC'], row['measured CMC STD']
+        mean, std = row['measured CMC 10min'], row['measured CMC STD 10min']
         lit_low, lit_high = row['literature low'], row['literature high']
 
         # Measured CMC range: fill with group color, border in black
@@ -347,31 +376,103 @@ def plot_cmc_comparison(
     return fig, ax
 
 
-def plot_cmc_vs_surf1_ratio(results_df, single_cmc_df, ncols=5, Clint=False):
+def plot_cmc_rmse(table1, surfactant_library):
+
+    rmse_results = []
+
+    for _, row in table1.iterrows():
+        surf_name = row['surfactant_1']
+        measured = row['measured CMC 10min']
+        
+        if surf_name in surfactant_library:
+            refs = surfactant_library[surf_name]
+            ref_values = [refs[k] for k in ['ref_1', 'ref_2', 'ref_3'] if k in refs and refs[k] is not None]
+            if len(ref_values) > 0:
+                rmse = np.sqrt(np.mean((np.array(ref_values) - measured) ** 2))
+            else:
+                rmse = np.nan
+        else:
+            rmse = np.nan
+        
+        rmse_results.append({'surfactant': surf_name, 'RMSE': rmse})
+    
+    rmse_df = pd.DataFrame(rmse_results)
+
+    # Plot
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.bar(rmse_df['surfactant'], rmse_df['RMSE'])
+    ax.set_xlabel('Surfactant')
+    ax.set_ylabel('RMSE (Measured vs. Ref CMC)')
+    ax.set_title('RMSE Comparison of Measured and Reference CMC Values')
+    ax.tick_params(axis='x', rotation=45)
+    fig.tight_layout()
+
+    return fig, ax
+
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+# solve_rubingh_beta is not needed here but assume it's imported or defined elsewhere
+
+def plot_cmc_vs_surf1_ratio(results_df, single_cmc_df, key, beta_df, ncols=5, Clint=False, filter_pairs=None):
+    """
+    Plots measured CMC vs. Surfactant 1 ratio. 
+    Can filter the plots to only include specific surfactant pairs.
+    """
+
+    # Define colors locally to prevent NameError, using standard Matplotlib defaults/hex.
 
     s1 = 'surfactant_1'
     s2 = 'surfactant_2'
     rat = 'surfactant_1_ratio'
-    cmc = 'CMC'
+    cmc = f'CMC_{key}'
     surf = 'surfactant_1'
-    meas = 'measured CMC'
+    meas = 'measured CMC 10min'
 
     # build lookup for pure compounds
     cmc_lookup = single_cmc_df.set_index(surf)[meas].to_dict()
 
+    # --- Create beta lookup ---
+    beta_lookup = {}
+    for _, row in beta_df.iterrows():
+        pair_key = (row['Surfactant 1'], row['Surfactant 2'])
+        beta_lookup[pair_key] = {
+            'avg': row['Average Beta'],
+            'std': row['Beta Std Dev']
+        }
+    # --------------------------
+
     # find all unique combos
     combos = results_df[[s1, s2]].drop_duplicates().reset_index(drop=True)
+    
+    # --- NEW: Filter combos if filter_pairs is provided ---
+    if filter_pairs is not None:
+        # Create a list of 'S1/S2' strings for easy lookup
+        combo_names = [f"{row[s1]}/{row[s2]}" for _, row in combos.iterrows()]
+        
+        # Determine which combos to keep
+        filter_indices = [i for i, name in enumerate(combo_names) if name in filter_pairs]
+        combos = combos.iloc[filter_indices].reset_index(drop=True)
+    # -----------------------------------------------------
+
     nplots = len(combos)
-    nrows = int(np.ceil(nplots / ncols))
+    nrows = int(np.ceil(nplots / ncols)) if nplots > 0 else 1
 
     fig, axes = plt.subplots(nrows, ncols,
                              figsize=(ncols*4, nrows*3),
                              squeeze=False)
+    
+    # Keep track of the *actual* plot count, as the 'idx' from combos.iterrows() will be continuous
+    # but we need to map it to the correct row/col index (plot_index)
+    plot_index = 0
 
-    for idx, combo in combos.iterrows():
+    #for idx, combo in combos.iterrows(): # Change was needed here: use plot_index instead of idx
+    for _, combo in combos.iterrows(): 
         surf1 = combo[s1]
         surf2 = combo[s2]
-        ax = axes[idx // ncols, idx % ncols]
+        
+        # Map the current sequential plot to its grid coordinates
+        ax = axes[plot_index // ncols, plot_index % ncols]
 
         # mixture data
         sub = results_df[(results_df[s1]==surf1) & (results_df[s2]==surf2)]
@@ -379,8 +480,8 @@ def plot_cmc_vs_surf1_ratio(results_df, single_cmc_df, ncols=5, Clint=False):
         y_mix = sub[cmc].values
 
         # pure endpoints
-        y0 = cmc_lookup.get(surf2, np.nan)  # at ratio 0
-        y1 = cmc_lookup.get(surf1, np.nan)  # at ratio 1
+        y0 = cmc_lookup.get(surf2, np.nan)  # at ratio 0 (Surfactant 2 pure)
+        y1 = cmc_lookup.get(surf1, np.nan)  # at ratio 1 (Surfactant 1 pure)
 
         # combine and sort (measured)
         x_all = np.concatenate(([0], x_mix, [1]))
@@ -412,401 +513,491 @@ def plot_cmc_vs_surf1_ratio(results_df, single_cmc_df, ncols=5, Clint=False):
                 color=red,
                 label='Clint'
             )
-            ax.legend(fontsize=6, loc='best')
+        
+        beta_info = beta_lookup.get((surf1, surf2))
+        
+        if beta_info and np.isfinite(beta_info['avg']):
+            avg = beta_info['avg']
+            std = beta_info['std'] if np.isfinite(beta_info['std']) else 0.0
+            
+            # Create the LaTeX label (using the updated format)
+            beta_label = f"$\\beta = {avg:.1f} \\pm {std:.1f}$"
+            
+            # Plot a dummy line with zero size/width to carry the legend label
+            ax.plot([], [], ' ', label=beta_label)
+        
+        # Show the legend with the new beta entry
+        ax.legend(fontsize=8, loc='best')
+        # ------------------------------------
 
+        # --- REVERTED TITLE ---
         ax.set_title(f"{surf1}/{surf2}", fontsize=10)
+        # ----------------------
+        
         ax.set_xlabel(f"{surf1} Ratio", fontsize=10)
         ax.set_ylabel('CMC (mM)')
+        
+        # Increment plot index
+        plot_index += 1
 
     # turn off any empty subplots
+    # Start checking from the last plotted index up to the total number of axes
+    for j in range(plot_index, nrows * ncols):
+        axes[j // ncols, j % ncols].axis('off')
+
+    plt.tight_layout()
+    
+    if filter_pairs is None:
+        plot_type = 'all_pairs'
+    else:
+        plot_type = 'filtered_pairs'
+
+    # The figure saving logic is preserved from your original code
+    if Clint:
+        fig.savefig(f'figures/mixed_CMC_conc_clint_{key}_{plot_type}.png', dpi=300)
+    else:
+        fig.savefig(f'figures/mixed_CMC_conc_{key}_{plot_type}.png', dpi=300)
+        
+    plt.show()
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+from scipy.optimize import brentq 
+
+def solve_rubingh_beta(alpha, C1, C2, Cm, tol=1e-8, maxiter=200):
+    """
+    Given bulk fraction alpha, pure CMCs C1/C2, and mixed Cm,
+    return (beta, x1_micelle). np.nan on failure.
+    (The corrected Rubingh solver)
+    """
+    # ... (solve_rubingh_beta function remains unchanged, as it's correct) ...
+    # sanity checks
+    if not (np.isfinite(alpha) and np.isfinite(C1) and np.isfinite(C2) and np.isfinite(Cm)):
+        return np.nan, np.nan
+    if C1 <= 0 or C2 <= 0 or Cm <= 0 or alpha <= 0 or alpha >= 1:
+        return np.nan, np.nan
+
+    eps = 1e-8
+
+    def phi(x):
+        x = np.clip(x, eps, 1.0 - eps)
+        F1 = (alpha * Cm) / (x * C1)
+        F2 = ((1.0 - alpha) * Cm) / ((1.0 - x) * C2)
+        if F1 <= 0 or F2 <= 0: return np.nan
+        logF1 = np.log(F1)
+        logF2 = np.log(F2)
+        g1 = logF1 / (1.0 - x)**2
+        g2 = logF2 / x**2
+        return g1 - g2
+
+    try:
+        x_micelle = brentq(phi, eps, 1.0 - eps)
+    except (ValueError, RuntimeError):
+        xs = np.linspace(eps, 1.0 - eps, 400)
+        vals = np.array([phi(xx) for xx in xs])
+        if np.all(~np.isfinite(vals)): return np.nan, np.nan
+        i = int(np.nanargmin(np.abs(vals)))
+        x_micelle = xs[i]
+
+    x = np.clip(x_micelle, eps, 1.0 - eps)
+    F1 = (alpha * Cm) / (x * C1)
+    F2 = ((1.0 - alpha) * Cm) / ((1.0 - x) * C2)
+    
+    if F1 <= 0 or F2 <= 0: return np.nan, np.nan
+    
+    g1 = np.log(F1) / (1.0 - x)**2
+    g2 = np.log(F2) / x**2
+    beta = 0.5 * (g1 + g2)
+    
+    return beta, x_micelle
+
+# ----------------------------------------------------------------------
+## Final Updated Plotting and Analysis Function
+# ----------------------------------------------------------------------
+
+def plot_rubingh_beta_vs_ratio(results_df, single_cmc_df, key, ncols=5, Clint=False,
+                               exclude_extremes=True, extreme_threshold=0.05):
+
+    # column helpers
+    s1 = 'surfactant_1'
+    s2 = 'surfactant_2'
+    rat = 'surfactant_1_ratio'
+    cmc_col = f'CMC_{key}'
+    surf = 'surfactant_1'
+    meas = 'measured CMC 10min'
+
+    try:
+        line_color = blue
+    except NameError:
+        line_color = '#1f77b4'
+
+    # pure CMC lookup
+    cmc_lookup = single_cmc_df.set_index(surf)[meas].to_dict()
+
+    # unique ordered pairs
+    combos = results_df[[s1, s2]].drop_duplicates().reset_index(drop=True)
+    nplots = len(combos)
+    nrows = int(np.ceil(nplots / ncols)) if nplots > 0 else 1
+
+    fig, axes = plt.subplots(nrows, ncols, figsize=(ncols*4, nrows*3), squeeze=False)
+    
+    # List to store beta statistics for the final output DataFrame
+    beta_stats = []
+
+    # --- plotting loop ---
+    for idx, combo in combos.iterrows():
+        surf1 = combo[s1]
+        surf2 = combo[s2]
+        ax = axes[idx // ncols, idx % ncols]
+
+        # subset for this ordered pair
+        sub_all = results_df[(results_df[s1] == surf1) & (results_df[s2] == surf2)].copy()
+        
+        # Apply exclusion filter
+        if exclude_extremes:
+            sub = sub_all[
+                (sub_all[rat] > extreme_threshold) & 
+                (sub_all[rat] < (1.0 - extreme_threshold))
+            ].copy()
+        else:
+            sub = sub_all.copy() 
+
+        # Handle case where the filtered data is empty
+        if sub.empty:
+            ax.set_title(f"{surf1}/{surf2}", fontsize=10)
+            ax.set_xlabel(f"{surf1} Ratio ($\\alpha_1$)", fontsize=10)
+            ax.set_ylabel(r'$\beta$')
+            ax.axhline(0.0, linewidth=0.8, color='k', alpha=0.4)
+            ax.text(0.5, 0.5, f"No data: $\\alpha \in ({extreme_threshold}, {1-extreme_threshold})$", 
+                    ha='center', va='center', transform=ax.transAxes, color='red', fontsize=9)
+            
+            # Record NaN stats for this pair
+            beta_stats.append({
+                'Surfactant 1': surf1,
+                'Surfactant 2': surf2,
+                'Average Beta': np.nan,
+                'Beta Std Dev': np.nan,
+                'N Points': 0
+            })
+            continue
+
+        # get pure endpoints
+        C1 = cmc_lookup.get(surf1, np.nan)
+        C2 = cmc_lookup.get(surf2, np.nan)
+
+        # compute beta for each mixture row in the filtered 'sub' dataframe
+        alphas = sub[rat].to_numpy()
+        Cms = sub[cmc_col].to_numpy()
+
+        betas = np.full_like(alphas, np.nan, dtype=float)
+
+        for i, (a, cm) in enumerate(zip(alphas, Cms)):
+            b, xmic = solve_rubingh_beta(a, C1, C2, cm)
+            betas[i] = b
+
+        # --- CALCULATE AND RECORD STATS ---
+        finite_betas = betas[np.isfinite(betas)]
+        avg_beta = np.mean(finite_betas) if len(finite_betas) > 0 else np.nan
+        std_beta = np.std(finite_betas) if len(finite_betas) > 1 else np.nan
+        
+        beta_stats.append({
+            'Surfactant 1': surf1,
+            'Surfactant 2': surf2,
+            'Average Beta': avg_beta,
+            'Beta Std Dev': std_beta,
+            'N Points': len(finite_betas)
+        })
+
+        # --- PLOTTING (ONLY INCLUDED POINTS) ---
+        # sort by alpha for a nicer line
+        order = np.argsort(alphas)
+        x_plot = alphas[order]
+        y_plot = betas[order]
+
+        ax.plot(
+            x_plot, y_plot,
+            linestyle='-',
+            color=line_color,
+            marker='o',
+            markersize=8,
+            markerfacecolor=line_color,
+            markeredgecolor='black',
+            markeredgewidth=0.5,
+            label=r'$\beta$ (Rubingh)'
+        )
+
+        ax.set_title(f"{surf1}/{surf2}", fontsize=10)
+        ax.set_xlabel(f"{surf1} Ratio ($\\alpha_1$)", fontsize=10)
+        ax.set_ylabel(r'$\beta$')
+        
+        # Set y-limit based on calculated finite betas
+        if len(finite_betas) > 0:
+            y_min = np.nanmin(finite_betas)
+            y_max = np.nanmax(finite_betas)
+            # Use a slightly wider range than the data
+            ax.set_ylim(y_min - 0.5, y_max + 0.5)
+        
+        # Ensure x-axis shows the full 0 to 1 range
+        ax.set_xlim(0.0, 1.0)
+
+
+        # zero line for reference
+        ax.axhline(0.0, linewidth=0.8, color='k', alpha=0.4)
+        
+        # NOTE: Removed the axvspan calls for light red shading.
+
+
+    # turn off unused axes
     for j in range(nplots, nrows * ncols):
         axes[j // ncols, j % ncols].axis('off')
 
-    if Clint == 0:
+    plt.tight_layout()
+    fig.savefig(f'figures/beta_analysis_{key}.png', dpi=300)
+    plt.show()
+    
+    # --- RETURN DATAFRAME ---
+    return pd.DataFrame(beta_stats)
+
+
+
+
+
+def plot_beta_heatmap(beta_values):
+
+    from matplotlib.colors import LinearSegmentedColormap
+
+    # Copy and mirror data so both (A,B) and (B,A) pairs exist
+    df = beta_values.copy()
+    mirrored = df.rename(columns={"Surfactant 1": "Surfactant 2", "Surfactant 2": "Surfactant 1"})
+    df_full = pd.concat([df, mirrored], ignore_index=True).drop_duplicates(subset=["Surfactant 1", "Surfactant 2"])
+
+    # Pivot table
+    pivot = df_full.pivot(index="Surfactant 1", columns="Surfactant 2", values="Average Beta")
+
+    # Reindex using fixed order
+    pivot = pivot.reindex(index=SURFACTANT_ORDER[::-1], columns=SURFACTANT_ORDER)
+
+    # Fill diagonal with 0.00
+    for surf in SURFACTANT_ORDER:
+        if surf in pivot.index and surf in pivot.columns:
+            pivot.loc[surf, surf] = 0.00
+
+    # Create mask of missing values
+    mask = pivot.isna()
+
+    # Define colormap
+    cmap_continuous = LinearSegmentedColormap.from_list("custom_rwb", [blue, "white", red])
+
+    # Create figure and axis
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    # Plot main heatmap
+    sns.heatmap(
+        pivot,
+        cmap=cmap_continuous,
+        vmin=-6,
+        vmax=6,
+        annot=True,
+        fmt=".2f",
+        linewidths=0.5,
+        linecolor='grey',
+        cbar_kws={'label': 'Average Beta'},
+        ax=ax
+    )
+
+    # --- Overlay a light grey patch for N/A cells ---
+    for i in range(pivot.shape[0]):
+        for j in range(pivot.shape[1]):
+            if mask.iloc[i, j]:
+                # Draw light grey background rectangle
+                ax.add_patch(plt.Rectangle(
+                    (j, i), 1, 1,
+                    fill=True,
+                    color='lightgrey',
+                    ec='grey',
+                    lw=0.5,
+                    zorder=2
+                ))
+                # Add 'N/A' text
+                ax.text(j + 0.5, i + 0.5, 'N/A',
+                        ha='center', va='center',
+                        color='black', fontsize=9, zorder=3)
+
+    # Formatting
+    ax.set_title("")
+    ax.set_xlabel("")
+    ax.set_ylabel("")
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right')
+    ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
+    fig.tight_layout()
+
+    return fig, ax
+
+
+
+
+def mixed_CMC_curve(data, data_type, font_size, show_plot=False, pair_filters=None):
+
+    df = data[data_type].copy()
+
+    # Column definitions
+    I1_COL = '334_373'
+    I3_COL = '334_384'
+    RATIO_COL = 'ratio'
+    SURF_1_COL = 'surfactant_1'
+    SURF_1_RATIO_COL = 'surfactant_1_ratio'
+    SURF_2_COL = 'surfactant_2'
+    SURF_2_RATIO_COL = 'surfactant_2_ratio'
+    ASSAY_COL = 'assay'
+    CONC_COL = 'concentration'
+
+    # Ensure ratio columns are numeric
+    df[SURF_1_RATIO_COL] = pd.to_numeric(df[SURF_1_RATIO_COL], errors='coerce')
+    df[SURF_2_RATIO_COL] = pd.to_numeric(df[SURF_2_RATIO_COL], errors='coerce')
+
+    # Surfactant ordering
+    SURFACTANT_ORDER = ['SDS', 'DSS', 'NaC', 'CTAB', 'DTAB', 'TTAB', 'CAPB', 'CHAPS']
+    df[SURF_1_COL] = pd.Categorical(df[SURF_1_COL], categories=SURFACTANT_ORDER, ordered=True)
+    df[SURF_2_COL] = pd.Categorical(df[SURF_2_COL], categories=SURFACTANT_ORDER, ordered=True)
+
+    # Identify unique surfactant combinations (including ratios)
+    combos = (
+        df[[SURF_1_COL, SURF_2_COL, SURF_1_RATIO_COL, SURF_2_RATIO_COL]]
+        .drop_duplicates()
+        .sort_values([SURF_1_COL, SURF_2_COL, SURF_1_RATIO_COL])
+        .reset_index(drop=True)
+    )
+
+    results = []
+
+    # --- NEW: Calculate ALL results first, regardless of plotting ---
+    for idx, combo in combos.iterrows():
+        surf1 = combo[SURF_1_COL]
+        surf2 = combo[SURF_2_COL]
+        r1 = float(combo[SURF_1_RATIO_COL])
+        r2 = float(combo[SURF_2_RATIO_COL])
+
+        sub = df[
+            (df[SURF_1_COL] == surf1) &
+            (df[SURF_2_COL] == surf2) &
+            (df[SURF_1_RATIO_COL] == r1)
+        ]
+        conc = sub[CONC_COL].values
+        ratio_vals = sub[RATIO_COL].values
+
+        # Perform the fit to get CMC and R2
+        cmc_values, r2_fit = CMC_plot(None, ratio_vals, conc, log=1, plot=0) # Pass None for ax and plot=0 since we only want the values
+
+        results.append({
+            SURF_1_COL:       surf1,
+            SURF_1_RATIO_COL: r1,
+            SURF_2_COL:       surf2,
+            SURF_2_RATIO_COL: r2,
+            f'CMC_{data_type}': cmc_values,
+            f'R2_{data_type}':  r2_fit
+        })
+    # --- END NEW RESULT CALCULATION ---
+
+
+    # --- PLOTTING LOGIC (mostly from previous answer) ---
+    def plot_combos(part, name_suffix):
+        if part.empty:
+            return # Skip if no data
+
+        nplots = len(part)
+        ncols = 5
+        nrows = int(np.ceil(nplots / ncols))
+        fig, axes = plt.subplots(nrows, ncols, figsize=(ncols * 4, nrows * 3), squeeze=False)
+
+        for plot_idx, combo in part.iterrows(): # Use plot_idx for subplot position
+            surf1 = combo[SURF_1_COL]
+            surf2 = combo[SURF_2_COL]
+            r1 = float(combo[SURF_1_RATIO_COL])
+            r2 = float(combo[SURF_2_RATIO_COL])
+
+            # ax position is based on the index within the PART, not the global index
+            row_idx = plot_idx // ncols
+            col_idx = plot_idx % ncols
+            ax = axes[row_idx, col_idx]
+
+            ax.tick_params(labelsize=font_size-2)
+
+
+            sub = df[
+                (df[SURF_1_COL] == surf1) &
+                (df[SURF_2_COL] == surf2) &
+                (df[SURF_1_RATIO_COL] == r1)
+            ]
+            conc = sub[CONC_COL].values
+            ratio_vals = sub[RATIO_COL].values
+
+            # This call is ONLY for plotting now
+            CMC_plot(ax, ratio_vals, conc, log=1, plot=1)
+            ax.set_title(f"{surf1}/{surf2} ({r1:.2f}/{r2:.2f})", fontsize=font_size)
+
+            leg = ax.get_legend()
+            if leg:
+                # 1. Set font size for the legend entries (labels)
+                for text in leg.get_texts():
+                    text.set_fontsize(font_size) # Use the input font_size
+
+                # 2. Set font size for the legend title
+                # You were already doing this part correctly!
+                leg.set_title(leg.get_title().get_text(), prop={'size': font_size + 2})
+
+            # 1. Y-axis label for all figures on the left
+            if col_idx == 0:
+                ax.set_ylabel('I1/I3 ratio', fontsize=font_size)
+            else:
+                ax.set_ylabel('')
+
+            # 2. X-axis label for all figures on the bottom
+            if row_idx == nrows - 1:
+                ax.set_xlabel('Concentration (log scale)', fontsize=font_size)
+            else:
+                ax.set_xlabel('')
+
+
+
+        # Disable unused axes
+        for j in range(nplots, nrows * ncols):
+            axes[j // ncols, j % ncols].axis('off')
+
         plt.tight_layout()
-        fig.savefig('figures/mixed_CMC_conc.png', dpi=300)
-        plt.show()
+        if show_plot:
+            plt.show()
 
-    if Clint == 1:
-        plt.tight_layout()
-        fig.savefig('figures/mixed_CMC_conc_clint.png', dpi=300)
-        plt.show()
+        fig.savefig(f'figures/mixed_CMC_curve_{data_type}_{name_suffix}.png', dpi=300)
 
+    # --- Start of Plotting Selection Logic ---
+    if pair_filters is not None:
+        # Filter combinations based on the list of surfactant pairs
+        filtered_combos = []
+        for pair in pair_filters:
+            surf1, surf2 = pair.split('/')
 
-# import numpy as np
-# import matplotlib.pyplot as plt
-# import os
+            # Match combinations where (surf1, surf2) or (surf2, surf1)
+            match = combos[
+                ((combos[SURF_1_COL] == surf1) & (combos[SURF_2_COL] == surf2)) |
+                ((combos[SURF_1_COL] == surf2) & (combos[SURF_2_COL] == surf1))
+            ]
+            filtered_combos.append(match)
 
-# # --------------------------
-# # 数值工具
-# # --------------------------
+        # Plot all selected pairs in one figure
+        part_to_plot = pd.concat(filtered_combos).drop_duplicates().reset_index(drop=True)
+        if not part_to_plot.empty:
+            plot_combos(part_to_plot, "filtered")
+    else:
+        # Original logic: Split ALL calculated combos into two parts for plotting
+        part1 = combos.iloc[:45].reset_index(drop=True)
+        part2 = combos.iloc[45:].reset_index(drop=True)
 
-# _EPS = 1e-9
+        # Plot both parts
+        plot_combos(part1, "part_I")
+        plot_combos(part2, "part_II")
+    # --- End of Plotting Selection Logic ---
 
-# def _safe_log(x):
-#     return np.log(np.clip(x, 1e-300, None))
-
-# def _bracket_root(f, a=1e-6, b=1-1e-6, n_try=80):
-#     """
-#     在(0,1)内尝试为 f(x)=0 找到变号区间；失败返回None
-#     """
-#     xs = np.linspace(a, b, n_try)
-#     fs = [f(x) for x in xs]
-#     for i in range(len(xs)-1):
-#         if np.isfinite(fs[i]) and np.isfinite(fs[i+1]) and fs[i]*fs[i+1] < 0:
-#             return xs[i], xs[i+1]
-#     return None
-
-# def _bisect_newton(f, df, a, b, maxit=80, tol=1e-10):
-#     """
-#     先二分逼近到较小区间，再混合牛顿迭代；要求 f(a)*f(b)<0
-#     """
-#     fa, fb = f(a), f(b)
-#     if not (np.isfinite(fa) and np.isfinite(fb)):
-#         raise RuntimeError("Function not finite at bracket ends.")
-#     if fa*fb > 0:
-#         raise RuntimeError("Root not bracketed.")
-
-#     x = 0.5*(a+b)
-#     for k in range(maxit):
-#         # 尝试牛顿
-#         fx = f(x)
-#         dfx = df(x) if np.isfinite(fx) else np.nan
-#         step_ok = False
-#         if np.isfinite(fx) and np.isfinite(dfx) and abs(dfx) > 1e-14:
-#             xn = x - fx/dfx
-#             if (a < xn < b):
-#                 x = xn
-#                 step_ok = True
-
-#         if not step_ok:
-#             # 二分
-#             if fa*fx <= 0:
-#                 b, fb = x, fx
-#             else:
-#                 a, fa = x, fx
-#             x = 0.5*(a+b)
-
-#         if abs(fx) < tol or (b-a) < tol:
-#             return np.clip(x, _EPS, 1-_EPS)
-#     return np.clip(x, _EPS, 1-_EPS)
-
-# # --------------------------
-# # Rubingh 单点反演：已知 alpha1/CMCmix/CMC1/CMC2 -> 解 X1、beta_i
-# # --------------------------
-
-# def invert_X1_beta_from_point(alpha1, cmc_mix, cmc1, cmc2):
-#     """
-#     用“左右两条 beta 式相等”构造方程，先解 X1，再给出 beta_i
-#     方程：
-#     ln(α1*CMCmix/(X1*CMC1))/(1-X1)^2 = ln((1-α1)*CMCmix/((1-X1)*CMC2))/X1^2
-#     """
-#     a1 = np.clip(alpha1, _EPS, 1-_EPS)
-#     cmc_mix = float(cmc_mix)
-#     cmc1 = float(cmc1)
-#     cmc2 = float(cmc2)
-
-#     def left(X):
-#         return _safe_log(a1*cmc_mix/(X*cmc1))/((1.0 - X)**2)
-
-#     def right(X):
-#         return _safe_log((1.0 - a1)*cmc_mix/((1.0 - X)*cmc2))/(X**2)
-
-#     def f(X):
-#         return left(X) - right(X)
-
-#     def df(X):
-#         # 对 left-right 的解析导数（稳定起见，分步写）
-#         # left = ln(A/(X*CMC1)) / (1-X)^2 = [lnA - lnX - lnCMC1] * (1-X)^(-2)
-#         L_num = _safe_log(a1*cmc_mix) - _safe_log(X) - _safe_log(cmc1)
-#         L_den = (1.0 - X)**2
-#         dL_num = -1.0 / X
-#         dL_den = -2.0 * (1.0 - X)
-#         dleft = (dL_num * L_den - L_num * dL_den) / (L_den**2)
-
-#         # right = ln(B/((1-X)*CMC2)) / X^2 = [lnB - ln(1-X) - lnCMC2] * X^(-2)
-#         R_num = _safe_log((1.0 - a1)*cmc_mix) - _safe_log(1.0 - X) - _safe_log(cmc2)
-#         R_den = X**2
-#         dR_num = 1.0 / (1.0 - X)
-#         dR_den = 2.0 * X
-#         dright = (dR_num * R_den - R_num * dR_den) / (R_den**2)
-
-#         return dleft - dright
-
-#     br = _bracket_root(f)
-#     if br is None:
-#         # 退化情况下，尝试从中心用牛顿
-#         x0 = 0.5
-#         # 简单回退：强制在(ε,1-ε)内
-#         x = np.clip(x0, _EPS, 1 - _EPS)
-#         # 粗糙牛顿几步
-#         for _ in range(50):
-#             fx = f(x)
-#             dfx = df(x)
-#             if not np.isfinite(fx) or not np.isfinite(dfx) or abs(dfx) < 1e-12:
-#                 break
-#             x_new = x - fx/dfx
-#             if not (0 < x_new < 1):
-#                 break
-#             if abs(x_new - x) < 1e-10:
-#                 x = x_new
-#                 break
-#             x = x_new
-#         X1 = np.clip(x, _EPS, 1-_EPS)
-#     else:
-#         X1 = _bisect_newton(f, df, br[0], br[1])
-
-#     # 计算 beta_i（两条式应近似一致）
-#     beta_L = left(X1)
-#     beta_R = right(X1)
-#     beta_i = 0.5*(beta_L + beta_R)
-#     return X1, beta_i
-
-# # --------------------------
-# # 给定 beta，解 X1（预测用）：ln(X1/(1-X1)) - ln r + beta*(1-2X1)=0
-# # --------------------------
-
-# def solve_X1_from_alpha_beta(alpha1, cmc1, cmc2, beta):
-#     alpha1 = np.clip(alpha1, _EPS, 1-_EPS)
-#     r = (alpha1/(1.0 - alpha1)) * (cmc2/cmc1)
-
-#     def f(X):
-#         return _safe_log(X) - _safe_log(1.0 - X) - _safe_log(r) + beta*(1.0 - 2.0*X)
-
-#     def df(X):
-#         return 1.0/X + 1.0/(1.0 - X) - 2.0*beta
-
-#     br = _bracket_root(f)
-#     if br is None:
-#         # 容错：从中点用牛顿
-#         x = 0.5
-#         for _ in range(60):
-#             fx = f(x)
-#             dfx = df(x)
-#             if not np.isfinite(fx) or not np.isfinite(dfx) or abs(dfx) < 1e-12:
-#                 break
-#             x_new = x - fx/dfx
-#             if not (0 < x_new < 1):
-#                 break
-#             if abs(x_new - x) < 1e-12:
-#                 x = x_new
-#                 break
-#             x = x_new
-#         return np.clip(x, _EPS, 1.0-_EPS)
-#     return _bisect_newton(f, df, br[0], br[1])
-
-# def predict_cmc_from_beta(alpha1, cmc1, cmc2, beta):
-#     X1 = solve_X1_from_alpha_beta(alpha1, cmc1, cmc2, beta)
-#     # 两个等价表达式：
-#     cmc_mix1 = (X1*cmc1/alpha1) * np.exp((1.0 - X1)**2 * beta)
-#     cmc_mix2 = ((1.0 - X1)*cmc2/(1.0 - alpha1)) * np.exp((X1**2) * beta)
-#     # 数值平均（抑制极小误差）
-#     return 0.5*(cmc_mix1 + cmc_mix2), X1
-
-# # --------------------------
-# # 全局 beta 拟合：最小化 log-误差平方和
-# # --------------------------
-
-# def fit_global_beta(alphas, cmc_meas, cmc1, cmc2):
-#     alphas = np.asarray(alphas, float)
-#     cmc_meas = np.asarray(cmc_meas, float)
-
-#     def objective(beta):
-#         preds = []
-#         for a, y in zip(alphas, cmc_meas):
-#             yhat, _ = predict_cmc_from_beta(a, cmc1, cmc2, beta)
-#             preds.append(yhat)
-#         preds = np.asarray(preds)
-#         res = _safe_log(preds) - _safe_log(cmc_meas)
-#         return float(np.sum(res*res))
-
-#     # 先粗网格扫一遍
-#     grid = np.linspace(-20.0, 20.0, 801)  # 步长~0.05
-#     vals = np.array([objective(b) for b in grid])
-#     i0 = int(np.argmin(vals))
-#     b_left = grid[max(0, i0-1)]
-#     b_right = grid[min(len(grid)-1, i0+1)]
-
-#     # 局部黄金分割搜索（单峰近似）
-#     phi = 0.61803398875
-#     a, c = b_left, b_right
-#     # 如果左右相等，扩展一点区间
-#     if a == c:
-#         a, c = grid[max(0, i0-5)], grid[min(len(grid)-1, i0+5)]
-#     b = c - phi*(c - a)
-#     d = a + phi*(c - a)
-#     fb = objective(b)
-#     fd = objective(d)
-#     for _ in range(80):
-#         if fb < fd:
-#             c, d, fd = d, b, fb
-#             b = c - phi*(c - a)
-#             fb = objective(b)
-#         else:
-#             a, b, fb = b, d, fd
-#             d = a + phi*(c - a)
-#             fd = objective(d)
-#         if abs(c - a) < 1e-6:
-#             break
-#     beta_star = 0.5*(a + c)
-#     return beta_star, objective(beta_star)
-
-# # --------------------------
-# # Rubingh plot：y = ln(α1*CMCmix/(X1*CMC1)) vs x = (1-X1)^2，斜率≈beta
-# # --------------------------
-
-# def rubingh_plot(ax, alphas, cmc_mix, cmc1, cmc2, title=None, save_path=None):
-#     Xs, betas = [], []
-#     for a, y in zip(alphas, cmc_mix):
-#         X1, beta_i = invert_X1_beta_from_point(a, y, cmc1, cmc2)
-#         Xs.append(X1)
-#         betas.append(beta_i)
-#     Xs = np.asarray(Xs)
-#     betas = np.asarray(betas)
-
-#     x = (1.0 - Xs)**2
-#     y = _safe_log(alphas*cmc_mix/(Xs*cmc1))
-#     # 过原点的最小二乘斜率：beta_plot
-#     beta_plot = float(np.sum(x*y) / max(np.sum(x*x), 1e-30))
-
-#     ax.scatter(x, y, label='data')
-#     xx = np.linspace(0, max(1e-6, x.max()*1.05), 100)
-#     ax.plot(xx, beta_plot*xx, label=f'fit (slope = {beta_plot:.3f})')
-#     ax.set_xlabel(r'$(1 - X_1)^2$')
-#     ax.set_ylabel(r'$\ln\left(\alpha_1\,CMC_{mix}/(X_1\,CMC_1)\right)$')
-#     if title:
-#         ax.set_title(title)
-#     ax.legend()
-
-#     if save_path:
-#         plt.tight_layout()
-#         plt.savefig(save_path, dpi=300)
-#     return beta_plot, Xs, betas
-
-# # --------------------------
-# # 你的主函数：加入 RST 预测、Rubingh plot 与 beta 计算
-# # --------------------------
-
-# def plot_cmc_vs_surf1_ratio(results_df, single_cmc_df, ncols=5, Clint=False, do_RST=True, outdir='figures'):
-#     """
-#     results_df: 包含列 ['surfactant_1','surfactant_2','surfactant_1_ratio','CMC']
-#     single_cmc_df: 包含列 ['surfactant_1','measured CMC']  (你的原命名)
-#     """
-
-#     os.makedirs(outdir, exist_ok=True)
-
-#     s1 = 'surfactant_1'
-#     s2 = 'surfactant_2'
-#     rat = 'surfactant_1_ratio'
-#     cmc = 'CMC'
-#     surf = 'surfactant_1'
-#     meas = 'measured CMC'
-
-#     # 纯组分 CMC 查表
-#     cmc_lookup = single_cmc_df.set_index(surf)[meas].to_dict()
-
-#     # unique 组合
-#     combos = results_df[[s1, s2]].drop_duplicates().reset_index(drop=True)
-#     nplots = len(combos)
-#     nrows = int(np.ceil(nplots / ncols))
-
-#     fig, axes = plt.subplots(nrows, ncols,
-#                              figsize=(ncols*4, nrows*3),
-#                              squeeze=False)
-
-#     for idx, combo in combos.iterrows():
-#         surf1 = combo[s1]
-#         surf2 = combo[s2]
-#         ax = axes[idx // ncols, idx % ncols]
-
-#         # 混合数据
-#         sub = results_df[(results_df[s1]==surf1) & (results_df[s2]==surf2)].copy()
-#         x_mix = sub[rat].values.astype(float)  # α1
-#         y_mix = sub[cmc].values.astype(float)  # CMC_mix
-
-#         # 纯端点
-#         y0 = cmc_lookup.get(surf2, np.nan)  # α1=0
-#         y1 = cmc_lookup.get(surf1, np.nan)  # α1=1
-
-#         # 合并与排序（测量）
-#         x_all = np.concatenate(([0], x_mix, [1]))
-#         y_all = np.concatenate(([y0], y_mix, [y1]))
-#         order = np.argsort(x_all)
-#         x_all, y_all = x_all[order], y_all[order]
-
-#         # 实测曲线
-#         ax.plot(x_all, y_all, linestyle='-', marker='o', markersize=5, label='Measured')
-
-#         # 可选 Clint 预测
-#         if Clint and np.isfinite(y0) and np.isfinite(y1):
-#             x_grid = np.linspace(0, 1, 201)
-#             y_clint = 1.0 / (x_grid / y1 + (1.0 - x_grid) / y0)
-#             ax.plot(x_grid, y_clint, linestyle='--', label='Clint')
-
-#         title_bits = [f"{surf1}/{surf2}"]
-
-#         if do_RST and np.isfinite(y0) and np.isfinite(y1) and len(x_mix) >= 2:
-#             # 单点反演 beta_i
-#             beta_is = []
-#             X1_points = []
-#             for a, y in zip(x_mix, y_mix):
-#                 try:
-#                     X1_i, beta_i = invert_X1_beta_from_point(a, y, y1, y0)  # 注意：cmc1=y1, cmc2=y0
-#                     beta_is.append(beta_i)
-#                     X1_points.append(X1_i)
-#                 except Exception:
-#                     pass
-
-#             beta_is = np.array(beta_is, float)
-#             if beta_is.size > 0:
-#                 beta_mean = float(np.mean(beta_is))
-#                 beta_std = float(np.std(beta_is, ddof=1)) if beta_is.size >= 2 else np.nan
-#                 title_bits.append(f"β̄={beta_mean:.3f}±{(beta_std if np.isfinite(beta_std) else 0):.3f}")
-
-#             # 全局 beta 拟合
-#             try:
-#                 beta_star, obj = fit_global_beta(x_mix, y_mix, y1, y0)
-#                 title_bits.append(f"β*={beta_star:.3f}")
-#                 # 用 β* 画 RST 预测曲线
-#                 x_grid = np.linspace(0, 1, 301)
-#                 y_rst = []
-#                 for a in x_grid:
-#                     yhat, _ = predict_cmc_from_beta(a, y1, y0, beta_star)
-#                     y_rst.append(yhat)
-#                 y_rst = np.asarray(y_rst)
-#                 ax.plot(
-#                     x_grid, y_rst,
-#                     linestyle='--',
-#                     label=f'Rubingh (β={beta_star:.3f})'
-#                 )
-
-#             except Exception:
-#                 beta_star = None
-
-#             # 生成 Rubingh plot 并保存
-#             try:
-#                 fig_r, ax_r = plt.subplots(figsize=(4,3))
-#                 save_path = os.path.join(outdir, f"rubingh_plot_{surf1}__{surf2}.png")
-#                 beta_plot, Xs, betas_single = rubingh_plot(
-#                     ax_r, x_mix, y_mix, y1, y0,
-#                     title=f"Rubingh plot: {surf1}/{surf2}",
-#                     save_path=save_path
-#                 )
-#                 plt.close(fig_r)
-#                 title_bits.append(f"β(plot)={beta_plot:.3f}")
-#             except Exception:
-#                 pass
-
-#         ax.set_title(" | ".join(title_bits), fontsize=9)
-#         ax.set_xlabel(f"{surf1} Ratio (α1)", fontsize=9)
-#         ax.set_ylabel('CMC (mM)', fontsize=9)
-#         ax.legend(fontsize=7, loc='best')
-
-#     # 关掉空子图
-#     for j in range(nplots, nrows * ncols):
-#         axes[j // ncols, j % ncols].axis('off')
-
-#     plt.tight_layout()
-#     outfile = os.path.join(outdir, f"mixed_CMC_conc_{'clint_' if Clint else ''}rst.png")
-#     plt.savefig(outfile, dpi=300)
-#     plt.show()
+    results_df = pd.DataFrame(results)
+    return results_df
